@@ -32,7 +32,83 @@ local Chunks = {
 Chunks.__index = Chunks
 
 
-local Generator = {}
+
+
+--- Generator class.
+-- The class that generates the string of Lua code that will be compiled into
+-- the function that renders the template.
+local Generator = {
+    new = function(self)
+        local instance = shared_new(self)
+        instance.buffer = {}
+        return instance
+    end,
+
+    result = function(self)
+        return table.concat(self.buffer)
+    end,
+
+    push = function(self, text, ...)
+        table.insert(self.buffer, text)
+        if ... then
+          return self:push(...)
+        end
+    end,
+
+    header = function(self)
+        return self:push('local __buffer = ...\n')
+    end,
+
+    footer = function(self)
+        return self:push('return __buffer\n')
+    end,
+
+    mark = function(self, pos)
+        return self:push('--[[', tostring(pos), ']] ')
+    end,
+
+    assign = function(self, value)
+        self:push('table.insert(__buffer, ', value, ')\n')
+    end,
+
+    generate = function(self, chunks)
+        self.buffer = {}
+        self:header()
+        for index, chunk in ipairs(chunks) do
+            local kind = type(chunk)
+            -- If it's a string, it should be put as a string literal in the
+            -- generated code, just escaping the quote symbols using format().
+            if kind == 'string' then
+                self:assign(('%q'):format(chunk))
+            elseif kind == 'table' then
+                local value = chunk[1]
+                local position = chunk[2]
+                kind = chunk[3]
+
+                self:mark(position)
+                -- If it's code, it's just added to the buffer, raw.
+                if kind == Chunks.CODE then
+                    self:push(value, '\n')
+                -- Similar to the literal string, but converting to string (and
+                -- perhaps escaping).
+                elseif kind == Chunks.RAW then
+                    self:assign('tostring(' .. value .. ')')
+                elseif kind == Chunks.ESCAPE then
+                    self:assign('escape(tostring(' .. value .. '))')
+                end
+            else
+                error('unknown type ' .. tostring(kind))
+            end
+        end
+        self:footer()
+        return self:result()
+    end
+}
+Generator.__index = Generator
+
+
+
+
 local Parser = {}
 
 elt.Chunks = Chunks
