@@ -54,9 +54,6 @@ end)
 
 --------------------------------------------------------------------------------
 describe('Generator class', function()
-    local plain_text = true -- For clarity in some string.find() calls.
-    local generator, chunks
-
     it('is a table with helper functions', function()
         assert.is_table(elt.Generator)
         assert.is_function(elt.Generator.new)
@@ -70,6 +67,9 @@ describe('Generator class', function()
         assert.is_table(getmetatable(generator))
         assert.is_same(getmetatable(generator), elt.Generator)
     end)
+
+    local plain_text = true -- For clarity in some string.find() calls.
+    local generator, chunks
 
     describe('once created', function()
         setup(function()
@@ -118,7 +118,7 @@ describe('Generator class', function()
         it('generates a program that interpolates and escapes values', function()
             chunks:append('escaped', 42, chunks.ESCAPE)
             local result = generator:generate(chunks)
-            pattern = [=[--[[42]] table.insert(__buffer, escape(tostring(escaped)))]=]
+            local pattern = [=[--[[42]] table.insert(__buffer, escape(tostring(escaped)))]=]
             assert.is_not_nil(result:find(pattern, 1, plain_text))
         end)
 

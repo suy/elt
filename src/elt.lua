@@ -74,7 +74,7 @@ local Generator = {
     generate = function(self, chunks)
         self.buffer = {}
         self:header()
-        for index, chunk in ipairs(chunks) do
+        for _, chunk in ipairs(chunks) do
             local kind = type(chunk)
             -- If it's a string, it should be put as a string literal in the
             -- generated code, just escaping the quote symbols using format().
