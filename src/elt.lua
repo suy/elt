@@ -128,9 +128,22 @@ elt.Generator = Generator
 elt.Parser = Parser
 
 
-elt.compile = function(...)
-    local parser = Parser()
-    return parser:compile(...)
+-- TODO: needs reviewing if it needs more work. It's possible that the function
+-- might need to support receving an instance instead of a class (although
+-- perhaps the instance accepting a call to `new` is enough!). Also, perhaps the
+-- Parser/Generator classes need to support better overriding of functions
+-- (overriding at the class level instead of the instance level). But all of
+-- this is just a thought. Not confirmed.
+elt.compile = function(text, parser_class, generator_class)
+    assert(text and type(text) == 'string', 'No template provided or not a string')
+    if not parser_class then
+        parser_class = Parser
+    end
+    if not generator_class then
+        generator_class = Generator
+    end
+    local parser = parser_class:new(generator_class:new())
+    return parser:compile(text)
 end
 
 
