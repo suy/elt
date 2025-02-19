@@ -63,20 +63,20 @@ local Generator = {
     push = function(self, text, ...)
         table.insert(self.buffer, text)
         if ... then
-          return self:push(...)
+            self:push(...)
         end
     end,
 
     header = function(self)
-        return self:push('local __buffer = ...\n')
+        self:push('local __buffer = ...\n')
     end,
 
     footer = function(self)
-        return self:push('return __buffer\n')
+        self:push('return __buffer\n')
     end,
 
     mark = function(self, pos)
-        return self:push('--[[', tostring(pos), ']] ')
+        self:push('--[[', tostring(pos), ']] ')
     end,
 
     assign = function(self, value)
