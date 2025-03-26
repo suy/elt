@@ -147,3 +147,87 @@ end)
 
 
 --------------------------------------------------------------------------------
+describe('Parser class', function()
+    it('is a table with helper functions', function()
+        assert.is_table(elt.Parser)
+        assert.is_function(elt.Parser.new)
+        assert.is_function(elt.Parser.wrap_source)
+        assert.is_function(elt.Parser.parse)
+    end)
+
+    it('can create instances with `new`', function()
+        local parser = elt.Parser:new()
+        assert.is_table(parser)
+        assert.is_table(getmetatable(parser))
+        assert.is_same(getmetatable(parser), elt.Parser)
+    end)
+
+    it('can wrap strings and arrays of strings in an iterator', function()
+        local sources = {
+            'first\nsecond\nthird\n',        -- UNIX LF.
+            'first\nsecond\nthird',          -- UNIX LF, but no LF at EOF.
+            'first\r\nsecond\r\nthird\r\n',  -- DOS CRLF.
+            'first\r\nsecond\r\nthird',      -- DOS CRLF, but no CRLF at EOF.
+            { 'first', 'second', 'third' },  -- Array of strings.
+        }
+        for _, source in ipairs(sources) do
+            -- Set the stub each time, as it seems to work well for clearing
+            -- past calls and ensuring we don't screw up with last/past calls.
+            stub(_G, 'print')
+            for line in elt.Parser.wrap_source(source) do
+                print(line)
+            end
+            assert.stub(_G.print).was_called(3)
+            assert.stub(_G.print).was_called_with('first')
+            assert.stub(_G.print).was_called_with('second')
+            assert.stub(_G.print).was_called_with('third')
+        end
+
+        -- Some more tests with empty lines.
+        stub(_G, 'print')
+        for line in elt.Parser.wrap_source('1\n\n3\n\n\n') do
+            print(line)
+        end
+        assert.stub(_G.print).was_called(5)
+        assert.stub(_G.print).was_called_with('1')
+        assert.stub(_G.print).was_called_with('')
+        assert.stub(_G.print).was_called_with('3')
+
+        stub(_G, 'print')
+        for line in elt.Parser.wrap_source({'1', '', '3', '', ''}) do
+            print(line)
+        end
+        assert.stub(_G.print).was_called(5)
+        assert.stub(_G.print).was_called_with('1')
+        assert.stub(_G.print).was_called_with('')
+        assert.stub(_G.print).was_called_with('3')
+    end)
+
+    local parser
+
+    describe('once created', function()
+        setup(function()
+            parser = elt.Parser:new()
+        end)
+
+        it('parses an empty string into empty chunks', function()
+            local chunks = parser:parse('')
+            assert.is_table(chunks)
+            assert.is_table(getmetatable(chunks))
+            assert.is_same(getmetatable(chunks), elt.Chunks)
+            assert.is_same(#chunks, 0)
+        end)
+
+        it('parses a simple string into one chunk', function()
+            local chunks = parser:parse('hello world')
+            assert.is_table(chunks)
+            assert.is_table(getmetatable(chunks))
+            assert.is_same(getmetatable(chunks), elt.Chunks)
+        end)
+
+    end)
+
+end)
+
+
+--------------------------------------------------------------------------------

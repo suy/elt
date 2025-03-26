@@ -120,12 +120,60 @@ Generator.__index = Generator
 
 
 
+--- @class Parser
+elt.Parser = {
+    delimiters = {
+        open = '<%',
+        close = '%>',
+        line = '%',
+        raw = '=',
+        escape = '!',
+    },
 
-local Parser = {}
+    new = function()
+        return setmetatable({}, elt.Parser)
+    end,
+
+    wrap_source = function(source)
+        if type(source) == 'string' then
+            local position = 1
+            return function()
+                if position > #source then
+                    return nil
+                end
+                local start, finish = source:find('\r?\n', position)
+                if start then
+                    local line = source:sub(position, start - 1)
+                    position = finish + 1
+                    return line
+                else -- Return the last line, even if not ended in (CR)LF.
+                    local line = source:sub(position)
+                    position = #source + 1
+                    return line
+                end
+            end
+        elseif type(source) == 'table' then
+            local current = 0
+            return function()
+                current = current + 1
+                return current <= #source and source[current] or nil
+            end
+        elseif type(source) == 'function' then
+            return source
+        else
+            error('Parser: unsupported source type. Use a string, table or iterator')
+        end
+    end,
+
+    parse = function(self, source, delimiters)
+        source = self:wrap_source(source)
+        return Chunks:new()
+    end,
+}
+elt.Parser.__index = elt.Parser
 
 elt.Chunks = Chunks
 elt.Generator = Generator
-elt.Parser = Parser
 
 
 -- TODO: needs reviewing if it needs more work. It's possible that the function
