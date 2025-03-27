@@ -95,8 +95,8 @@ describe('Generator class', function()
 
         it('generates a basic program with empty chunks', function()
             local result = generator:generate(chunks)
-            assert.is_not_nil(result:find("local __buffer = ...", 1, plain_text))
-            assert.is_not_nil(result:find("return __buffer", 1, plain_text))
+            assert.is_not_nil(result:find('local __buffer = ...', 1, plain_text))
+            assert.is_not_nil(result:find('return __buffer', 1, plain_text))
         end)
 
         it('generates a program that produces basic text', function()
@@ -136,9 +136,9 @@ describe('Generator class', function()
                 return self:push('return table.concat(__buffer)\n')
             end
             local result = generator:generate(chunks)
-            assert.is_not_nil(result:find("local __buffer = ...", 1, plain_text))
-            assert.is_nil(result:find("return __buffer", 1, plain_text))
-            assert.is_not_nil(result:find("return table.concat(__buffer)", 1, plain_text))
+            assert.is_not_nil(result:find('local __buffer = ...', 1, plain_text))
+            assert.is_nil(result:find('return __buffer', 1, plain_text))
+            assert.is_not_nil(result:find('return table.concat(__buffer)', 1, plain_text))
         end)
 
     end)
