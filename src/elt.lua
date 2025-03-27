@@ -153,6 +153,11 @@ elt.Parser = {
                 end
             end
         elseif type(source) == 'table' then
+            -- To prevent silly mistakes, like doing self:wrap_source, and
+            -- accidentally passing the Parser instance as source.
+            assert(getmetatable(source) ~= elt.Parser, '`wrap_source` does not need a `self`')
+            assert(#source == 0 or type(source[1]) == 'string',
+                'Source of data for parsing should be a list of strings')
             local current = 0
             return function()
                 current = current + 1

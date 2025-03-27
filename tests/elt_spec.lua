@@ -201,6 +201,33 @@ describe('Parser class', function()
         assert.stub(_G.print).was_called_with('1')
         assert.stub(_G.print).was_called_with('')
         assert.stub(_G.print).was_called_with('3')
+
+        -- Now with "trivial" cases, without multiple lines.
+        stub(_G, 'print')
+        for line in elt.Parser.wrap_source('') do
+            print(line)
+        end
+        assert.stub(_G.print).was_called(0)
+
+        stub(_G, 'print')
+        for line in elt.Parser.wrap_source('Example') do
+            print(line)
+        end
+        assert.stub(_G.print).was_called(1)
+        assert.stub(_G.print).was_called_with('Example')
+
+        stub(_G, 'print')
+        for line in elt.Parser.wrap_source({}) do
+            print(line)
+        end
+        assert.stub(_G.print).was_called(0)
+
+        stub(_G, 'print')
+        for line in elt.Parser.wrap_source({'Example'}) do
+            print(line)
+        end
+        assert.stub(_G.print).was_called(1)
+        assert.stub(_G.print).was_called_with('Example')
     end)
 
     local parser
