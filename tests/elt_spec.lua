@@ -81,7 +81,7 @@ describe('Generator class', function()
     local generator, chunks
 
     describe('once created', function()
-        setup(function()
+        before_each(function()
             generator = elt.Generator:new()
             chunks = elt.Chunks:new()
         end)
@@ -171,69 +171,56 @@ describe('Parser class', function()
             { 'first', 'second', 'third' },  -- Array of strings.
         }
         for _, source in ipairs(sources) do
-            -- Set the stub each time, as it seems to work well for clearing
-            -- past calls and ensuring we don't screw up with last/past calls.
-            stub(_G, 'print')
+            local results = {}
             for line in elt.Parser.wrap_source(source) do
-                print(line)
+                table.insert(results, line)
             end
-            assert.stub(_G.print).was_called(3)
-            assert.stub(_G.print).was_called_with('first')
-            assert.stub(_G.print).was_called_with('second')
-            assert.stub(_G.print).was_called_with('third')
+            assert.is_same(results, {'first', 'second', 'third'})
         end
 
         -- Some more tests with empty lines.
-        stub(_G, 'print')
+        local results = {}
         for line in elt.Parser.wrap_source('1\n\n3\n\n\n') do
-            print(line)
+            table.insert(results, line)
         end
-        assert.stub(_G.print).was_called(5)
-        assert.stub(_G.print).was_called_with('1')
-        assert.stub(_G.print).was_called_with('')
-        assert.stub(_G.print).was_called_with('3')
+        assert.is_same(results, {'1', '', '3', '', ''})
 
-        stub(_G, 'print')
+        results = {}
         for line in elt.Parser.wrap_source({'1', '', '3', '', ''}) do
-            print(line)
+            table.insert(results, line)
         end
-        assert.stub(_G.print).was_called(5)
-        assert.stub(_G.print).was_called_with('1')
-        assert.stub(_G.print).was_called_with('')
-        assert.stub(_G.print).was_called_with('3')
+        assert.is_same(results, {'1', '', '3', '', ''})
 
         -- Now with "trivial" cases, without multiple lines.
-        stub(_G, 'print')
+        results = {}
         for line in elt.Parser.wrap_source('') do
-            print(line)
+            table.insert(results, line)
         end
-        assert.stub(_G.print).was_called(0)
+        assert.is_same(results, {})
 
-        stub(_G, 'print')
+        results = {}
         for line in elt.Parser.wrap_source('Example') do
-            print(line)
+            table.insert(results, line)
         end
-        assert.stub(_G.print).was_called(1)
-        assert.stub(_G.print).was_called_with('Example')
+        assert.is_same(results, {'Example'})
 
-        stub(_G, 'print')
+        results = {}
         for line in elt.Parser.wrap_source({}) do
-            print(line)
+            table.insert(results, line)
         end
-        assert.stub(_G.print).was_called(0)
+        assert.is_same(results, {})
 
-        stub(_G, 'print')
+        results = {}
         for line in elt.Parser.wrap_source({'Example'}) do
-            print(line)
+            table.insert(results, line)
         end
-        assert.stub(_G.print).was_called(1)
-        assert.stub(_G.print).was_called_with('Example')
+        assert.is_same(results, {'Example'})
     end)
 
     local parser
 
     describe('once created', function()
-        setup(function()
+        before_each(function()
             parser = elt.Parser:new()
         end)
 
