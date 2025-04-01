@@ -171,8 +171,104 @@ elt.Parser = {
     end,
 
     parse = function(self, source, delimiters)
-        source = self:wrap_source(source)
-        return Chunks:new()
+        delimiters = delimiters or self.delimiters
+        local chunks = Chunks:new()
+        local plain_text = true -- Constant. For clarity in string.find() calls.
+        --- @type (boolean|Chunks.Kind) Tracks if we are in plain text
+        --- or in which kind of "special" code context (code, raw or escaped).
+        local special = false -- Start with "text", till we find a delimiter.
+        local accumulated = {}
+
+        local line_count = 0
+
+        -- In "normal", non special mode, look for the opening delimiter.
+        local function find_delimiter(line, from)
+            local delimiter = (not special) and delimiters.open or delimiters.close
+            return line:find(delimiter, from, plain_text)
+        end
+
+        --- @return Chunks.Kind, integer
+        local function new_context(line, from)
+            if delimiters.raw and #delimiters.raw ~= 0 then
+                local start, finish = line:find(delimiters.raw, from)
+                if start then
+                    return Chunks.RAW, finish + 1
+                end
+            end
+            if delimiters.escape and #delimiters.escape ~= 0 then
+                local start, finish = line:find(delimiters.escape, from)
+                if start then
+                    return Chunks.ESCAPE, finish + 1
+                end
+            end
+
+            return Chunks.CODE, from
+        end
+
+        for line in elt.Parser.wrap_source(source) do
+            line_count = line_count + 1
+            local unread = 1
+
+            -- Handle the "whole line is code" delimiter (if not empty).
+            if not special and delimiters.line and #delimiters.line ~= 0 then
+                if line:sub(1, #delimiters.line) == delimiters.line then
+                    local rest = line:sub(#delimiters.line + 1)
+                    chunks:append(rest, line_count, Chunks.CODE)
+                    -- We are done with the whole line, so we could `continue`,
+                    -- if Lua had `continue`. This skips the rest of the loop.
+                    unread = #line + 1
+                end
+            end
+
+            -- Loop over the whole line
+            while unread <= #line do
+                local from, to = find_delimiter(line, unread)
+
+                -- Handle the normal text, not template code.
+                if not special then
+                    -- If no opening delimiter, add more text to the accumulated.
+                    if not from then
+                        local rest = line:sub(unread)
+                        table.insert(accumulated, rest)
+                        unread = #line + 1
+                        break
+                    else -- Found a delimiter. Add text till its start.
+                        local rest = line:sub(unread, from - 1)
+                        if #rest ~= 0 then
+                            table.insert(accumulated, rest)
+                        end
+                        if #accumulated ~= 0 then
+                            chunks:append(table.concat(accumulated, '\n'))
+                        end
+                        accumulated = {}
+
+                        special, unread = new_context(line, to + 1)
+                        -- If we reached EOL, add an empty code chunk.
+                        if unread > #line then
+                            chunks:append('', line_count, special)
+                        end
+                    end
+                else
+                    -- We are in code mode now. If the line ends in code mode,
+                    -- push that, and we will continue on the next line.
+                    if not from then
+                        chunks:append(line:sub(unread, #line), line_count, special)
+                        unread = #line + 1
+                        break
+                    else
+                        local rest = line:sub(unread, from - 1)
+                        chunks:append(rest, line_count, special)
+                        unread = to + 1
+                        special = false
+                    end
+                end
+            end
+        end
+        if #accumulated ~= 0 then
+            chunks:append(table.concat(accumulated, '\n'))
+        end
+
+        return chunks
     end,
 }
 elt.Parser.__index = elt.Parser

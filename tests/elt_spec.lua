@@ -234,9 +234,149 @@ describe('Parser class', function()
 
         it('parses a simple string into one chunk', function()
             local chunks = parser:parse('hello world')
-            assert.is_table(chunks)
-            assert.is_table(getmetatable(chunks))
-            assert.is_same(getmetatable(chunks), elt.Chunks)
+            assert.is_same(chunks, {'hello world'})
+        end)
+
+        it('parses two simple strings into one large chunk', function()
+            local chunks = parser:parse({'hello', 'world'})
+            assert.is_same(chunks, {'hello\nworld'})
+        end)
+
+        it('parses the single line code mode', function()
+            local chunks = parser:parse('% if something then')
+            assert.is_same(chunks, {
+                {' if something then', 1, elt.Chunks.CODE}
+            })
+        end)
+
+        it('parses the start of entering into code mode', function()
+            local chunks = parser:parse('<% if something then')
+            assert.is_same(chunks, {
+                {' if something then', 1, elt.Chunks.CODE}
+            })
+        end)
+
+        it('parses entering and exiting code mode', function()
+            local chunks = parser:parse('<% if something then %>')
+            assert.is_same(chunks, {
+                {' if something then ', 1, elt.Chunks.CODE},
+            })
+        end)
+
+        it('parses two consecutive code blocks', function()
+            local chunks = parser:parse('<% code1 %><% code2 %>')
+            assert.is_same(chunks, {
+                {' code1 ', 1, elt.Chunks.CODE},
+                {' code2 ', 1, elt.Chunks.CODE},
+            })
+        end)
+
+        it('parses a raw value output', function()
+            local chunks = parser:parse('<%=value%>')
+            assert.is_same(chunks, {
+                {'value', 1, elt.Chunks.RAW}
+            })
+        end)
+
+        it('parses an escaped value output', function()
+            local chunks = parser:parse('<%!value%>')
+            assert.is_same(chunks, {
+                {'value', 1, elt.Chunks.ESCAPE}
+            })
+        end)
+
+        --
+        -- Start mixing modes.
+        --
+
+        it('parses a single line of text followed by code', function()
+            local chunks = parser:parse('text<%code()%>')
+            assert.is_same(chunks, {
+                'text',
+                {'code()', 1, elt.Chunks.CODE},
+            })
+        end)
+
+        it('parses a single line of text, code and text again', function()
+            local chunks = parser:parse('some text <% code() %> more text')
+            assert.is_same(chunks, {
+                'some text ',
+                {' code() ', 1, elt.Chunks.CODE},
+                ' more text',
+            })
+        end)
+
+        it('parses a text, code and text again in multiple lines', function()
+            local chunks = parser:parse({
+                'some text',
+                '<% code() %>',
+                'more text',
+            })
+            assert.is_same(chunks, {
+                'some text',
+                {' code() ', 2, elt.Chunks.CODE},
+                'more text',
+            })
+        end)
+
+        it('parses a mix of text and code, with code ending on a different line', function()
+            local chunks = parser:parse({
+                'Text only',
+                'Code about to start',
+                '<% code()',
+                '%> code ended',
+            })
+            assert.is_same(chunks, {
+                'Text only\nCode about to start',
+                {' code()', 3, elt.Chunks.CODE},
+                {'', 4, elt.Chunks.CODE},
+                ' code ended',
+            })
+        end)
+
+        it('parses a mix of text and code, with code starting on a different line', function()
+            local chunks = parser:parse({
+                'Code about to start <%',
+                'code() %>',
+                'Code ended',
+            })
+            assert.is_same(chunks, {
+                'Code about to start ',
+                {'', 1, elt.Chunks.CODE},
+                {'code() ', 2, elt.Chunks.CODE},
+                'Code ended',
+            })
+        end)
+
+        --
+        -- Alternative markers.
+        --
+
+        it('parses with different delimiters', function()
+            local chunks = parser:parse({
+                '{{{if something then}}}',
+                '{{{<=value}}}',
+                '{{{end}}}',
+            }, {
+                open='{{{', close='}}}', raw='<='
+            })
+            assert.is_same(chunks, {
+                {'if something then', 1, elt.Chunks.CODE},
+                {'value', 2, elt.Chunks.RAW},
+                {'end', 3, elt.Chunks.CODE},
+            })
+            chunks = parser:parse({
+                '|if something then|',
+                '|!value|',
+                '|end|',
+            }, {
+                open='|', close='|', raw='!'
+            })
+            assert.is_same(chunks, {
+                {'if something then', 1, elt.Chunks.CODE},
+                {'value', 2, elt.Chunks.RAW},
+                {'end', 3, elt.Chunks.CODE},
+            })
         end)
 
     end)
