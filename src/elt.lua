@@ -46,7 +46,7 @@ Chunks.__index = Chunks
 
 
 
---- Generator class.
+--- @class Generator
 -- The class that generates the string of Lua code that will be compiled into
 -- the function that renders the template.
 local Generator = {
