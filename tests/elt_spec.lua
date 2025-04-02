@@ -160,6 +160,14 @@ describe('Parser class', function()
         assert.is_table(parser)
         assert.is_table(getmetatable(parser))
         assert.is_same(getmetatable(parser), elt.Parser)
+        assert.is_same(parser.delimiters, elt.delimiters)
+        assert.is_not_equal(parser.delimiters, elt.delimiters)
+
+        local copy = parser:new()
+        assert.is_same(parser.delimiters, copy.delimiters)
+        assert.is_not_equal(parser.delimiters, copy.delimiters)
+        copy.delimiters.line = '|'
+        assert.is_not_same(parser.delimiters, copy.delimiters)
     end)
 
     it('can wrap strings and arrays of strings in an iterator', function()
@@ -371,6 +379,35 @@ describe('Parser class', function()
                 '|end|',
             }, {
                 open='|', close='|', raw='!'
+            })
+            assert.is_same(chunks, {
+                {'if something then', 1, elt.Chunks.CODE},
+                {'value', 2, elt.Chunks.RAW},
+                {'end', 3, elt.Chunks.CODE},
+            })
+
+            -- Try changing the delimiters in the instance.
+            parser.delimiters = {
+                open='|', close='|', raw='!'
+            }
+            chunks = parser:parse({
+                '|if something then|',
+                '|!value|',
+                '|end|',
+            })
+            assert.is_same(chunks, {
+                {'if something then', 1, elt.Chunks.CODE},
+                {'value', 2, elt.Chunks.RAW},
+                {'end', 3, elt.Chunks.CODE},
+            })
+            local copy = parser:new()
+            copy.delimiters = {
+                open='||', close='||', raw='!!'
+            }
+            chunks = copy:parse({
+                '||if something then||',
+                '||!!value||',
+                '||end||',
             })
             assert.is_same(chunks, {
                 {'if something then', 1, elt.Chunks.CODE},
