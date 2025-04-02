@@ -280,23 +280,31 @@ elt.Parser.__index = elt.Parser
 elt.Chunks = Chunks
 elt.Generator = Generator
 
+--- Compile a template into function that will format it when called.
+---
+--- The source for the template can be either:
+--- * A string containing the lines of the template.
+--- * An array table of strings containing the lines of the template.
+--- * An iterator function to retrieve the lines one by one. An example of such
+--- iterator is `io.lines`, which can be used to retrieve the text from a file
+--- one by one.
+---
+--- @param source string|table|function The template source to be compiled.
+--- @param options? table|nil Extra options.
+--- @return function
+elt.compile = function(source, options)
+    return elt.text(source, options)
+end
 
--- TODO: needs reviewing if it needs more work. It's possible that the function
--- might need to support receving an instance instead of a class (although
--- perhaps the instance accepting a call to `new` is enough!). Also, perhaps the
--- Parser/Generator classes need to support better overriding of functions
--- (overriding at the class level instead of the instance level). But all of
--- this is just a thought. Not confirmed.
-elt.compile = function(text, parser_class, generator_class)
-    assert(text and type(text) == 'string', 'No template provided or not a string')
-    if not parser_class then
-        parser_class = Parser
-    end
-    if not generator_class then
-        generator_class = Generator
-    end
-    local parser = parser_class:new(generator_class:new())
-    return parser:compile(text)
+elt.text = function(source, options)
+    assert(type(options) == 'table' or type(options) == 'nil',
+        'Options must be a table or nil')
+    options = options or {}
+    local parser = options.parser or elt.Parser:new()
+    local delimiters = options.delimiters or elt.delimiters
+    local chunks = parser:parse(source, delimiters)
+    local generator = options.generator or elt.Generator:new()
+    return generator:generate(chunks)
 end
 
 
