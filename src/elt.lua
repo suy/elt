@@ -160,6 +160,7 @@ elt.Parser = {
             -- To prevent silly mistakes, like doing self:wrap_source, and
             -- accidentally passing the Parser instance as source.
             assert(getmetatable(source) ~= elt.Parser, '`wrap_source` does not need a `self`')
+            -- The table can be empty, but if not empty, it must have strings.
             assert(#source == 0 or type(source[1]) == 'string',
                 'Source of data for parsing should be a list of strings')
             local current = 0
@@ -289,14 +290,19 @@ elt.Generator = Generator
 --- iterator is `io.lines`, which can be used to retrieve the text from a file
 --- one by one.
 ---
+--- The options are not required, but allow to override the defaults, which are
+--- elt.Parser for parsing the template into fragments of code or text,
+--- elt.Generator for generating Lua code to be compiled, and elt.delimiters for
+--- the characters to use as special characters in templates.
+---
 --- @param source string|table|function The template source to be compiled.
 --- @param options? table|nil Extra options.
 --- @return function
 elt.compile = function(source, options)
-    return elt.text(source, options)
+    return elt.to_code(source, options)
 end
 
-elt.text = function(source, options)
+elt.to_code = function(source, options)
     assert(type(options) == 'table' or type(options) == 'nil',
         'Options must be a table or nil')
     options = options or {}
