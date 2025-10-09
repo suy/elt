@@ -449,3 +449,26 @@ describe('The `to_code` function', function()
 end)
 
 
+--------------------------------------------------------------------------------
+describe('The `loader` function', function()
+    it('returns a callable function from correct Lua code in a string', function()
+        local callable, err = elt.loader('return 42')
+        assert.is_function(callable)
+        assert.is_same(callable(), 42)
+        assert.is_nil(err)
+
+        callable, err = elt.loader('return 40 + 2')
+        assert.is_function(callable)
+        assert.is_same(callable(), 42)
+        assert.is_nil(err)
+
+        callable, err = elt.loader('return value')
+        setfenv(callable, { value = 42 })
+        assert.is_function(callable)
+        assert.is_same(callable(), 42)
+        assert.is_nil(err)
+    end)
+
+end)
+
+

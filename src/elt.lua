@@ -281,6 +281,23 @@ elt.Parser.__index = elt.Parser
 elt.Chunks = Chunks
 elt.Generator = Generator
 
+
+local function parse_error(message, _code)
+    return message
+end
+
+elt.loader = function(code_text, code_name)
+    code_name = code_name or "elt"
+
+    -- Lua 5.2 sort of merged `loadstring` with `load`. LuaJIT supports both.
+    local load_function = type(loadstring) == 'function' and loadstring or load
+    local code_function, message = load_function(code_text, code_name)
+    if not code_function then
+        return nil, parse_error(message, code_text)
+    end
+    return code_function
+end
+
 --- Compile a template into function that will format it when called.
 ---
 --- The source for the template can be either:
@@ -297,9 +314,17 @@ elt.Generator = Generator
 ---
 --- @param source string|table|function The template source to be compiled.
 --- @param options? table|nil Extra options.
---- @return function
+--- @return function|nil
+--- @return nil|string
 elt.compile = function(source, options)
-    return elt.to_code(source, options)
+    local implementation = elt.to_code(source, options)
+    local template, message = elt.loader(implementation)
+
+    if template then
+        return template
+    else
+        return nil, message
+    end
 end
 
 elt.to_code = function(source, options)
