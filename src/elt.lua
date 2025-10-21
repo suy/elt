@@ -179,14 +179,13 @@ elt.Parser = {
         delimiters = delimiters or self.delimiters
         local chunks = Chunks:new()
         local plain_text = true -- Constant. For clarity in string.find() calls.
-        --- @type (boolean|Chunks.Kind) Tracks if we are in plain text
+        --- @type (boolean|Chunks.Kind) Tracks if we are in plain text (`false`)
         --- or in which kind of "special" code context (code, raw or escaped).
         local special = false -- Start with "text", till we find a delimiter.
         local accumulated = {}
 
-        local line_count = 0
 
-        -- In "normal", non special mode, look for the opening delimiter.
+        -- Find the next delimiter (opening if in text mode, closing otherwise).
         local function find_delimiter(line, from)
             local delimiter = (not special) and delimiters.open or delimiters.close
             return line:find(delimiter, from, plain_text)
@@ -210,22 +209,26 @@ elt.Parser = {
             return Chunks.CODE, from
         end
 
+        -- Keep track of the line number in the template, so the generated code
+        -- can be mapped back to the template lines in errors.
+        local line_count = 0
         for line in elt.Parser.wrap_source(source) do
             line_count = line_count + 1
             local unread = 1
 
-            -- Handle the "whole line is code" delimiter (if not empty).
+            -- Handle the "whole line is code" case (if its delimiter exists).
             if not special and delimiters.line and #delimiters.line ~= 0 then
                 if line:sub(1, #delimiters.line) == delimiters.line then
                     local rest = line:sub(#delimiters.line + 1)
                     chunks:append(rest, line_count, Chunks.CODE)
-                    -- We are done with the whole line, so we could `continue`,
-                    -- if Lua had `continue`. This skips the rest of the loop.
+                    -- We are done with the whole line, so we would `continue`,
+                    -- if Lua had `continue`. This effectively skips the rest of
+                    -- the outer `for` loop (by skipping the `while` below).
                     unread = #line + 1
                 end
             end
 
-            -- Loop over the whole line
+            -- Loop over the line, splitting it by the delimiters.
             while unread <= #line do
                 local from, to = find_delimiter(line, unread)
 
@@ -235,7 +238,6 @@ elt.Parser = {
                     if not from then
                         local rest = line:sub(unread)
                         table.insert(accumulated, rest)
-                        unread = #line + 1
                         break
                     else -- Found a delimiter. Add text till its start.
                         local rest = line:sub(unread, from - 1)
@@ -258,7 +260,6 @@ elt.Parser = {
                     -- push that, and we will continue on the next line.
                     if not from then
                         chunks:append(line:sub(unread, #line), line_count, special)
-                        unread = #line + 1
                         break
                     else
                         local rest = line:sub(unread, from - 1)
