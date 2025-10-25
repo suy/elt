@@ -472,3 +472,45 @@ describe('The `loader` function', function()
 end)
 
 
+--------------------------------------------------------------------------------
+describe('The `execute` function', function()
+    it('calls a function with an environment and passing some parameters', function()
+        local called = false
+        local prefilled_buffer = {'previous text'}
+        local environment = {example=true, value=42}
+
+        local f = function(buffer)
+            called = true
+            table.insert(buffer, 'new content')
+            if example then
+                table.insert(buffer, 'example was true')
+            end
+            table.insert(buffer, tostring(value))
+
+            return buffer
+        end
+
+        local result = elt.execute(f, environment, prefilled_buffer)
+        assert.is_same(called, true)
+        assert.is_same(result, {
+            'previous text',
+            'new content',
+            'example was true',
+            '42',
+        })
+
+        called = false
+        prefilled_buffer = {'previous text'}
+        environment = {}
+        result = elt.execute(f, environment, prefilled_buffer)
+        assert.is_same(called, true)
+        assert.is_same(result, {
+            'previous text',
+            'new content',
+            'nil',
+        })
+    end)
+
+end)
+
+

@@ -1,3 +1,5 @@
+local tostring = tostring
+
 local elt = {}
 
 elt._COPYRIGHT   = 'Copyright (c) 2024 Alejandro Exojo Piqueras'
@@ -11,6 +13,11 @@ elt.delimiters = {
     raw = '=',
     escape = '!',
 }
+
+elt.escape = function(value)
+    return value
+end
+
 
 --- @class Chunks
 -- Simple helper that provides an `append` function to hold the array of chunks
@@ -327,6 +334,29 @@ elt.compile = function(source, options)
         return nil, message
     end
 end
+
+
+elt.execute = function(f, environment, buffer)
+    environment = environment or {}
+    buffer = buffer or {}
+    local merged = setmetatable({}, {
+        __index = function(_, name)
+            local value = environment[name]
+            if value ~= nil then
+                return value
+            elseif name == 'tostring' then
+                return tostring
+            elseif name == 'escape' then
+                return elt.escape
+            else
+                return _G[name]
+            end
+        end
+    })
+    setfenv(f, merged)
+    return f(buffer)
+end
+
 
 elt.to_code = function(source, options)
     assert(type(options) == 'table' or type(options) == 'nil',
