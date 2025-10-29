@@ -132,13 +132,21 @@ describe('Generator class', function()
         end)
 
         it('has functions that can be overridden', function()
-            generator.footer = function(self)
-                return self:push('return table.concat(__buffer)\n')
+            -- Entirely override the original function. This also happens to be
+            -- useful to more easily check the output here in the tests.
+            generator.result = function(self)
+                return self.buffer
+            end
+            -- Override the original, but reusing the original implementation.
+            generator.header = function(self)
+                elt.Generator.header(self) -- Not as pretty as `super()`, but works.
+                self:assign(('%q'):format('Special start'))
             end
             local result = generator:generate(chunks)
-            assert.is_not_nil(result:find('local __buffer = ...', 1, plain_text))
-            assert.is_nil(result:find('return __buffer', 1, plain_text))
-            assert.is_not_nil(result:find('return table.concat(__buffer)', 1, plain_text))
+            assert.is_same(result[1], 'local __buffer = ...\n')
+            assert.is_same(result[2], 'table.insert(__buffer, ')
+            assert.is_same(result[3], '"Special start"')
+            assert.is_same(result[4], ')\n')
         end)
 
     end)
