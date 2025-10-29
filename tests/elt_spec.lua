@@ -498,7 +498,7 @@ end)
 
 --------------------------------------------------------------------------------
 describe('The `to_code` function', function()
-    it('Checks for `options` being a table or nil', function()
+    it('checks for `options` being a table or nil', function()
         assert.has_errors(function()
             elt.to_code('hello', 42)
         end)
@@ -507,7 +507,7 @@ describe('The `to_code` function', function()
         end)
     end)
 
-    it('Uses the default Parser and Generator if not provided', function()
+    it('uses the default Parser and Generator if not provided', function()
         local new = spy.on(elt.Parser, 'new')
         elt.to_code('hello')
         assert.spy(new).was_called()
@@ -524,7 +524,7 @@ end)
 
 --------------------------------------------------------------------------------
 describe('The `compile` function', function()
-    it('Creates a ready to use function from a text template', function()
+    it('creates a ready to use function from a text template', function()
         local template = elt.compile('Hello world')
         assert.is_same(template(), 'Hello world')
 
