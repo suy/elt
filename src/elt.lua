@@ -297,7 +297,7 @@ local function parse_error(message, _code)
 end
 
 --- @param code_text string Text with the code to load.
---- @param code_name string Name to pass to the `load` function.
+--- @param code_name string|nil Name to pass to the `load` function.
 elt.loader = function(code_text, code_name)
     -- Lua 5.2 sort of merged `loadstring` with `load`. LuaJIT supports both.
     local load_function = type(loadstring) == 'function' and loadstring or load
