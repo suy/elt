@@ -520,6 +520,28 @@ describe('The `to_code` function', function()
         elt.Generator.new:revert()
     end)
 
+    it('uses the provided Parser and Generator to replace the defaults', function()
+        local generator = elt.Generator:new()
+        generator.header = function(self)
+            -- Replicate the usual header preamble, but add an extra message.
+            elt.Generator.header(self)
+            self:assign(('%q'):format('Special start'))
+        end
+        local result = elt.to_code('hello', {generator = generator})
+        assert.is_not_nil(result:find('Special start', 1, plain_text))
+
+        local parser = elt.Parser:new()
+        parser.parse = function()
+            -- It never parses anything.
+            local chunks = elt.Chunks:new()
+            chunks:append('goodbye')
+            return chunks
+        end
+        result = elt.to_code('hello', {parser = parser})
+        assert.is_not_nil(result:find('goodbye', 1, plain_text))
+        assert.is_nil(result:find('hello', 1, plain_text))
+    end)
+
 end)
 
 
