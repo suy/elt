@@ -308,6 +308,47 @@ elt.loader = function(code_text, code_name)
     return code_function
 end
 
+
+
+
+elt.execute = function(f, environment, buffer)
+    environment = environment or {}
+    buffer = buffer or {}
+    local merged = setmetatable({}, {
+        __index = function(_, name)
+            local value = environment[name]
+            if value ~= nil then
+                return value
+            elseif name == 'tostring' then
+                return tostring
+            elseif name == 'escape' then
+                return elt.escape
+            else
+                return _G[name]
+            end
+        end
+    })
+    setfenv(f, merged)
+    return f(buffer)
+end
+
+
+
+
+elt.to_code = function(source, options)
+    assert(type(options) == 'table' or type(options) == 'nil',
+        'Options must be a table or nil')
+    options = options or {}
+    local parser = options.parser or elt.Parser:new()
+    local delimiters = options.delimiters or elt.delimiters
+    local chunks = parser:parse(source, delimiters)
+    local generator = options.generator or elt.Generator:new()
+    return generator:generate(chunks)
+end
+
+
+
+
 --- Compile a template into function that will format it when called.
 ---
 --- The source for the template can be either:
@@ -344,38 +385,6 @@ elt.compile = function(source, options)
 end
 
 
-elt.execute = function(f, environment, buffer)
-    environment = environment or {}
-    buffer = buffer or {}
-    local merged = setmetatable({}, {
-        __index = function(_, name)
-            local value = environment[name]
-            if value ~= nil then
-                return value
-            elseif name == 'tostring' then
-                return tostring
-            elseif name == 'escape' then
-                return elt.escape
-            else
-                return _G[name]
-            end
-        end
-    })
-    setfenv(f, merged)
-    return f(buffer)
-end
-
-
-elt.to_code = function(source, options)
-    assert(type(options) == 'table' or type(options) == 'nil',
-        'Options must be a table or nil')
-    options = options or {}
-    local parser = options.parser or elt.Parser:new()
-    local delimiters = options.delimiters or elt.delimiters
-    local chunks = parser:parse(source, delimiters)
-    local generator = options.generator or elt.Generator:new()
-    return generator:generate(chunks)
-end
 
 
 elt.render = function(text, ...)

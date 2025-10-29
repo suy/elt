@@ -424,32 +424,6 @@ end)
 
 
 --------------------------------------------------------------------------------
-describe('The `to_code` function', function()
-    it('Checks for `options` being a table or nil', function()
-        assert.has_errors(function()
-            elt.to_code('hello', 42)
-        end)
-        assert.has_errors(function()
-            elt.to_code('hello', 'there')
-        end)
-    end)
-
-    it('Uses the default Parser and Generator if not provided', function()
-        local new = spy.on(elt.Parser, 'new')
-        elt.to_code('hello')
-        assert.spy(new).was_called()
-        elt.Parser.new:revert()
-
-        new = spy.on(elt.Generator, 'new')
-        elt.to_code('hello')
-        assert.spy(new).was_called()
-        elt.Generator.new:revert()
-    end)
-
-end)
-
-
---------------------------------------------------------------------------------
 describe('The `loader` function', function()
     it('returns a callable function from correct Lua code in a string', function()
         local callable, err = elt.loader('return 42')
@@ -509,6 +483,32 @@ describe('The `execute` function', function()
             'new content',
             'nil',
         })
+    end)
+
+end)
+
+
+--------------------------------------------------------------------------------
+describe('The `to_code` function', function()
+    it('Checks for `options` being a table or nil', function()
+        assert.has_errors(function()
+            elt.to_code('hello', 42)
+        end)
+        assert.has_errors(function()
+            elt.to_code('hello', 'there')
+        end)
+    end)
+
+    it('Uses the default Parser and Generator if not provided', function()
+        local new = spy.on(elt.Parser, 'new')
+        elt.to_code('hello')
+        assert.spy(new).was_called()
+        elt.Parser.new:revert()
+
+        new = spy.on(elt.Generator, 'new')
+        elt.to_code('hello')
+        assert.spy(new).was_called()
+        elt.Generator.new:revert()
     end)
 
 end)
