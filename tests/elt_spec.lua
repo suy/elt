@@ -2,6 +2,8 @@ require '../tests/luassert-reversed-en'
 
 local elt = require 'elt'
 
+local plain_text = true -- For clarity in some string.find() calls.
+
 --------------------------------------------------------------------------------
 describe('The elt module', function()
     it('has the basics in it', function()
@@ -77,7 +79,6 @@ describe('Generator class', function()
         assert.is_same(getmetatable(generator), elt.Generator)
     end)
 
-    local plain_text = true -- For clarity in some string.find() calls.
     local generator, chunks
 
     describe('once created', function()
