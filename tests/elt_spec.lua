@@ -514,3 +514,19 @@ describe('The `execute` function', function()
 end)
 
 
+--------------------------------------------------------------------------------
+describe('The `compile` function', function()
+    it('Creates a ready to use function from a text template', function()
+        local template = elt.compile('Hello world')
+        assert.is_same(template(), 'Hello world')
+
+        template = elt.compile('Hello <%= greeting_name %>')
+        assert.is_same(template(), 'Hello nil')
+        assert.is_same(template({greeting_name = 'world'}), 'Hello world')
+        assert.is_same(template({greeting_name = 'Bob'}), 'Hello Bob')
+        _G.greeting_name = 'global'
+        assert.is_same(template(), 'Hello global')
+        _G.greeting_name = nil
+    end)
+
+end)

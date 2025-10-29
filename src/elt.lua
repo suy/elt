@@ -296,9 +296,9 @@ local function parse_error(message, _code)
     return message
 end
 
+--- @param code_text string Text with the code to load.
+--- @param code_name string Name to pass to the `load` function.
 elt.loader = function(code_text, code_name)
-    code_name = code_name or "elt"
-
     -- Lua 5.2 sort of merged `loadstring` with `load`. LuaJIT supports both.
     local load_function = type(loadstring) == 'function' and loadstring or load
     local code_function, message = load_function(code_text, code_name)
@@ -318,20 +318,26 @@ end
 --- one by one.
 ---
 --- The options are not required, but allow to override the defaults, which are
---- elt.Parser for parsing the template into fragments of code or text,
---- elt.Generator for generating Lua code to be compiled, and elt.delimiters for
---- the characters to use as special characters in templates.
+--- * elt.Parser for parsing the template into fragments of code or text
+--- * elt.Generator for generating Lua code to be compiled
+--- * elt.delimiters for the characters to use as delimiters in templates
+--- * elt.code_name for the name to give the `load` function
 ---
 --- @param source string|table|function The template source to be compiled.
 --- @param options? table|nil Extra options.
 --- @return function|nil
 --- @return nil|string
 elt.compile = function(source, options)
+    options = options or {}
     local implementation = elt.to_code(source, options)
-    local template, message = elt.loader(implementation)
+    local code_name = options.code_name or "elt"
+
+    local template, message = elt.loader(implementation, code_name)
 
     if template then
-        return template
+        return function(environment, buffer)
+            return table.concat(elt.execute(template, environment, buffer))
+        end
     else
         return nil, message
     end
