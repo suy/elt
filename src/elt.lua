@@ -1,3 +1,6 @@
+-- Copyright (c) 2024-2025 Alejandro Exojo Piqueras
+-- SPDX-License-Identifier: MIT
+
 local tostring = tostring
 
 local elt = {}
