@@ -197,6 +197,12 @@ elt.Parser = {
         local special = false -- Start with "text", till we find a delimiter.
         local accumulated = {}
 
+        local function flush_accumulated()
+            if #accumulated ~= 0 then
+                chunks:append(table.concat(accumulated, '\n'))
+            end
+            accumulated = {}
+        end
 
         -- Find the next delimiter (opening if in text mode, closing otherwise).
         local function find_delimiter(line, from)
@@ -204,6 +210,7 @@ elt.Parser = {
             return line:find(delimiter, from, plain_text)
         end
 
+        -- Returns which kind of special mode we are in (raw, escape or code).
         --- @return Chunks.Kind, integer
         local function new_context(line, from)
             if delimiters.raw and #delimiters.raw ~= 0 then
@@ -232,6 +239,7 @@ elt.Parser = {
             -- Handle the "whole line is code" case (if its delimiter exists).
             if not special and delimiters.line and #delimiters.line ~= 0 then
                 if line:sub(1, #delimiters.line) == delimiters.line then
+                    flush_accumulated()
                     local rest = line:sub(#delimiters.line + 1)
                     chunks:append(rest, line_count, elt.Chunks.CODE)
                     -- We are done with the whole line, so we would `continue`,
@@ -247,20 +255,17 @@ elt.Parser = {
 
                 -- Handle the normal text, not template code.
                 if not special then
-                    -- If no opening delimiter, add more text to the accumulated.
+                    -- If no delimiter, all the line is text to accumulate.
                     if not from then
-                        local rest = line:sub(unread)
-                        table.insert(accumulated, rest)
+                        local normal_text = line:sub(unread)
+                        table.insert(accumulated, normal_text)
                         break
-                    else -- Found a delimiter. Add text till its start.
-                        local rest = line:sub(unread, from - 1)
-                        if #rest ~= 0 then
-                            table.insert(accumulated, rest)
+                    else -- Found a delimiter. Add text till its start, if any.
+                        local normal_text = line:sub(unread, from - 1)
+                        if #normal_text ~= 0 then
+                            table.insert(accumulated, normal_text)
                         end
-                        if #accumulated ~= 0 then
-                            chunks:append(table.concat(accumulated, '\n'))
-                        end
-                        accumulated = {}
+                        flush_accumulated()
 
                         special, unread = new_context(line, to + 1)
                         -- If we reached EOL, add an empty code chunk.
@@ -283,9 +288,7 @@ elt.Parser = {
                 end
             end
         end
-        if #accumulated ~= 0 then
-            chunks:append(table.concat(accumulated, '\n'))
-        end
+        flush_accumulated()
 
         return chunks
     end,

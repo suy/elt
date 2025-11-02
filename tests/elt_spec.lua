@@ -328,7 +328,7 @@ describe('Parser class', function()
             })
         end)
 
-        it('parses a text, code and text again in multiple lines', function()
+        it('parses text, a code block and text again (in multiple lines)', function()
             local chunks = parser:parse({
                 'some text',
                 '<% code() %>',
@@ -337,6 +337,19 @@ describe('Parser class', function()
             assert.is_same(chunks, {
                 'some text',
                 {' code() ', 2, elt.Chunks.CODE},
+                'more text',
+            })
+        end)
+
+        it('parses text, a single-line code block and text again (in multiple lines)', function()
+            local chunks = parser:parse({
+                'some text',
+                '% code()',
+                'more text',
+            })
+            assert.is_same(chunks, {
+                'some text',
+                {' code()', 2, elt.Chunks.CODE},
                 'more text',
             })
         end)
