@@ -1,0 +1,161 @@
+== Reference
+
+Data passed to the template:
+
+[source,lua]
+{
+    name='world',
+    list={'foo', 'bar', 'baz'},
+    truthy=true,
+}
+
+[cols="1,2a,2a"]
+|===
+|Name |Input |Output
+
+
+|Just text, single line
+|
+[source,lua]
+include::01-hello-world.elt[]
+|
+[source,txt]
+include::01-hello-world.txt[]
+
+
+|Just text, no newline at end of file
+|
+[source,lua]
+include::02-no-nl-at-eof.elt[]
+|
+[source,txt]
+include::02-no-nl-at-eof.txt[]
+
+
+|Just text, multiple lines
+|
+[source,lua]
+include::03-multiple-lines.elt[]
+|
+[source,txt]
+include::03-multiple-lines.txt[]
+
+
+|Just code 1
+|
+[source,lua]
+include::11-hello-void.elt[]
+|
+[source,txt]
+include::11-hello-void.txt[]
+
+
+|Just code 2
+|
+[source,lua]
+include::12-hello-void.elt[]
+|
+[source,txt]
+include::12-hello-void.txt[]
+
+
+|Just code 3
+|
+[source,lua]
+include::13-hello-void.elt[]
+|
+[source,txt]
+include::13-hello-void.txt[]
+
+
+|Basic substitution 1
+|
+[source,lua]
+include::21-hello-name.elt[]
+|
+[source,txt]
+include::21-hello-name.txt[]
+
+
+|Basic substitution 2
+|
+[source,lua]
+include::22-hello-name.elt[]
+|
+[source,txt]
+include::22-hello-name.txt[]
+
+
+|Repeated substitution 1
+|
+[source,lua]
+include::23-hello-hello.elt[]
+|
+[source,txt]
+include::23-hello-hello.txt[]
+
+
+|Repeated substitution 2
+|
+[source,lua]
+include::24-hello-hello.elt[]
+|
+[source,txt]
+include::24-hello-hello.txt[]
+
+
+|Multiline substitution 1
+|
+[source,lua]
+include::25-hello-lines.elt[]
+|
+[source,txt]
+include::25-hello-lines.txt[]
+
+
+|Multiline substitution 2
+|
+[source,lua]
+include::26-hello-lines.elt[]
+|
+[source,txt]
+include::26-hello-lines.txt[]
+
+
+|Multiline substitution 3
+|
+[source,lua]
+include::27-hello-lines.elt[]
+|
+[source,txt]
+include::27-hello-lines.txt[]
+
+
+|Mixed code and text 1
+|
+[source,lua]
+include::31-skips-newline.elt[]
+|
+[source,txt]
+include::31-skips-newline.txt[]
+
+
+|Mixed code and text 2
+|
+[source,lua]
+include::32-skips-newline.elt[]
+|
+[source,txt]
+include::32-skips-newline.txt[]
+
+
+|Mixed code and text 3
+|
+[source,lua]
+include::33-list-in-loop.elt[]
+|
+[source,txt]
+include::33-list-in-loop.txt[]
+
+
+|===

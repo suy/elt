@@ -256,12 +256,22 @@ describe('Parser class', function()
 
         it('parses a simple string into one chunk', function()
             local chunks = parser:parse('hello world')
-            assert.is_same(chunks, {'hello world'})
+            assert.is_same(chunks, {'hello world\n'})
+        end)
+
+        it('parses a simple string with a trailing newline into one chunk', function()
+            local chunks = parser:parse('hello world\n')
+            assert.is_same(chunks, {'hello world\n'})
+        end)
+
+        it('parses a simple string made of two lines into one chunk', function()
+            local chunks = parser:parse('hello\nworld')
+            assert.is_same(chunks, {'hello\nworld\n'})
         end)
 
         it('parses two simple strings into one large chunk', function()
             local chunks = parser:parse({'hello', 'world'})
-            assert.is_same(chunks, {'hello\nworld'})
+            assert.is_same(chunks, {'hello\nworld\n'})
         end)
 
         it('parses the single line code mode', function()
@@ -282,6 +292,7 @@ describe('Parser class', function()
             local chunks = parser:parse('<% if something then %>')
             assert.is_same(chunks, {
                 {' if something then ', 1, elt.Chunks.CODE},
+                '\n',
             })
         end)
 
@@ -290,20 +301,23 @@ describe('Parser class', function()
             assert.is_same(chunks, {
                 {' code1 ', 1, elt.Chunks.CODE},
                 {' code2 ', 1, elt.Chunks.CODE},
+                '\n',
             })
         end)
 
         it('parses a raw value output', function()
             local chunks = parser:parse('<%=value%>')
             assert.is_same(chunks, {
-                {'value', 1, elt.Chunks.RAW}
+                {'value', 1, elt.Chunks.RAW},
+                '\n',
             })
         end)
 
         it('parses an escaped value output', function()
             local chunks = parser:parse('<%!value%>')
             assert.is_same(chunks, {
-                {'value', 1, elt.Chunks.ESCAPE}
+                {'value', 1, elt.Chunks.ESCAPE},
+                '\n',
             })
         end)
 
@@ -316,6 +330,7 @@ describe('Parser class', function()
             assert.is_same(chunks, {
                 'text',
                 {'code()', 1, elt.Chunks.CODE},
+                '\n',
             })
         end)
 
@@ -324,7 +339,7 @@ describe('Parser class', function()
             assert.is_same(chunks, {
                 'some text ',
                 {' code() ', 1, elt.Chunks.CODE},
-                ' more text',
+                ' more text\n',
             })
         end)
 
@@ -335,9 +350,9 @@ describe('Parser class', function()
                 'more text',
             })
             assert.is_same(chunks, {
-                'some text',
+                'some text\n',
                 {' code() ', 2, elt.Chunks.CODE},
-                'more text',
+                '\nmore text\n',
             })
         end)
 
@@ -348,9 +363,9 @@ describe('Parser class', function()
                 'more text',
             })
             assert.is_same(chunks, {
-                'some text',
+                'some text\n',
                 {' code()', 2, elt.Chunks.CODE},
-                'more text',
+                'more text\n',
             })
         end)
 
@@ -362,10 +377,10 @@ describe('Parser class', function()
                 '%> code ended',
             })
             assert.is_same(chunks, {
-                'Text only\nCode about to start',
+                'Text only\nCode about to start\n',
                 {' code()', 3, elt.Chunks.CODE},
                 {'', 4, elt.Chunks.CODE},
-                ' code ended',
+                ' code ended\n',
             })
         end)
 
@@ -377,9 +392,25 @@ describe('Parser class', function()
             })
             assert.is_same(chunks, {
                 'Code about to start ',
-                {'', 1, elt.Chunks.CODE},
                 {'code() ', 2, elt.Chunks.CODE},
-                'Code ended',
+                '\nCode ended\n',
+            })
+        end)
+
+        it('parses a mix of text and code, with a for loop', function()
+            local chunks = parser:parse({
+                'Hello',
+                '% for i, item in pairs(items) do',
+                '* <%= item %>',
+                '% end',
+            })
+            assert.is_same(chunks, {
+                'Hello\n',
+                {' for i, item in pairs(items) do', 2, elt.Chunks.CODE},
+                '* ',
+                {' item ', 3, elt.Chunks.RAW},
+                '\n',
+                {' end', 4, elt.Chunks.CODE},
             })
         end)
 
@@ -397,8 +428,11 @@ describe('Parser class', function()
             })
             assert.is_same(chunks, {
                 {'if something then', 1, elt.Chunks.CODE},
+                '\n',
                 {'value', 2, elt.Chunks.RAW},
+                '\n',
                 {'end', 3, elt.Chunks.CODE},
+                '\n',
             })
             chunks = parser:parse({
                 '|if something then|',
@@ -409,8 +443,11 @@ describe('Parser class', function()
             })
             assert.is_same(chunks, {
                 {'if something then', 1, elt.Chunks.CODE},
+                '\n',
                 {'value', 2, elt.Chunks.RAW},
+                '\n',
                 {'end', 3, elt.Chunks.CODE},
+                '\n',
             })
 
             -- Try changing the delimiters in the instance.
@@ -424,8 +461,11 @@ describe('Parser class', function()
             })
             assert.is_same(chunks, {
                 {'if something then', 1, elt.Chunks.CODE},
+                '\n',
                 {'value', 2, elt.Chunks.RAW},
+                '\n',
                 {'end', 3, elt.Chunks.CODE},
+                '\n',
             })
             local copy = parser:new()
             copy.delimiters = {
@@ -438,8 +478,11 @@ describe('Parser class', function()
             })
             assert.is_same(chunks, {
                 {'if something then', 1, elt.Chunks.CODE},
+                '\n',
                 {'value', 2, elt.Chunks.RAW},
+                '\n',
                 {'end', 3, elt.Chunks.CODE},
+                '\n',
             })
         end)
 
@@ -565,15 +608,69 @@ end)
 describe('The `compile` function', function()
     it('creates a ready to use function from a text template', function()
         local template = elt.compile('Hello world')
-        assert.is_same(template(), 'Hello world')
+        assert.is_same(template(), 'Hello world\n')
 
         template = elt.compile('Hello <%= greeting_name %>')
-        assert.is_same(template(), 'Hello nil')
-        assert.is_same(template({greeting_name = 'world'}), 'Hello world')
-        assert.is_same(template({greeting_name = 'Bob'}), 'Hello Bob')
+        assert.is_same(template(), 'Hello nil\n')
+        assert.is_same(template({greeting_name = 'world'}), 'Hello world\n')
+        assert.is_same(template({greeting_name = 'Bob'}), 'Hello Bob\n')
         _G.greeting_name = 'global'
-        assert.is_same(template(), 'Hello global')
+        assert.is_same(template(), 'Hello global\n')
         _G.greeting_name = nil
     end)
+end)
 
+
+
+--------------------------------------------------------------------------------
+describe('The render function', function()
+    it('produces the expected text correctly', function()
+        local files = {
+            '01-hello-world',
+            '02-no-nl-at-eof',
+            '03-multiple-lines',
+            '11-hello-void',
+            '12-hello-void',
+            '13-hello-void',
+            '21-hello-name',
+            '22-hello-name',
+            '23-hello-hello',
+            '24-hello-hello',
+            '25-hello-lines',
+            '26-hello-lines',
+            '27-hello-lines',
+            '31-skips-newline',
+            '32-skips-newline',
+            '33-list-in-loop',
+        }
+        local data = {
+            name='world',
+            list={'foo', 'bar', 'baz'},
+            truthy=true,
+        }
+
+        for _, name in ipairs(files) do
+            local template_file = assert(io.open('tests/samples/' .. name .. '.elt', 'r'))
+            local expected_file = assert(io.open('tests/samples/' .. name .. '.txt', 'r'))
+            local template_data = template_file:read('*all')
+            local expected_data = expected_file:read('*all')
+
+            local rendered = elt.render(template_data, data)
+            assert.equal(rendered, expected_data)
+
+            --[[
+            -- Just some useful boilerplate to inspect the template's internals.
+            print(('=== %s ==='):format(name))
+            local inspect = require('inspect')
+            local parser = elt.Parser:new()
+            local chunks = parser:parse(template_data)
+            for _, chunk in ipairs(chunks) do
+                print(inspect(chunk))
+            end
+            local generator = elt.Generator:new()
+            print(generator:generate(chunks))
+            --]]
+
+        end
+    end)
 end)

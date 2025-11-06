@@ -195,13 +195,21 @@ elt.Parser = {
         --- @type (boolean|Chunks.Kind) Tracks if we are in plain text (`false`)
         --- or in which kind of "special" code context (code, raw or escaped).
         local special = false -- Start with "text", till we find a delimiter.
-        local accumulated = {}
 
-        local function flush_accumulated()
-            if #accumulated ~= 0 then
-                chunks:append(table.concat(accumulated, '\n'))
+        -- Keep track of the line number in the template, so the generated code
+        -- can be mapped back to the template lines in errors.
+        local line_count = 0
+
+        -- Tracks text or interpolated values (RAW, ESCAPE) that are not added
+        -- line by line, but accumulated and appended in one go.
+        local pending_text = {}
+        local pending_line = 0
+
+        local function flush_pending()
+            if #pending_text ~= 0 then
+                chunks:append(table.concat(pending_text))
             end
-            accumulated = {}
+            pending_text = {}
         end
 
         -- Find the next delimiter (opening if in text mode, closing otherwise).
@@ -229,9 +237,6 @@ elt.Parser = {
             return elt.Chunks.CODE, from
         end
 
-        -- Keep track of the line number in the template, so the generated code
-        -- can be mapped back to the template lines in errors.
-        local line_count = 0
         for line in elt.Parser.wrap_source(source) do
             line_count = line_count + 1
             local unread = 1
@@ -239,7 +244,7 @@ elt.Parser = {
             -- Handle the "whole line is code" case (if its delimiter exists).
             if not special and delimiters.line and #delimiters.line ~= 0 then
                 if line:sub(1, #delimiters.line) == delimiters.line then
-                    flush_accumulated()
+                    flush_pending()
                     local rest = line:sub(#delimiters.line + 1)
                     chunks:append(rest, line_count, elt.Chunks.CODE)
                     -- We are done with the whole line, so we would `continue`,
@@ -253,42 +258,54 @@ elt.Parser = {
             while unread <= #line do
                 local from, to = find_delimiter(line, unread)
 
-                -- Handle the normal text, not template code.
-                if not special then
-                    -- If no delimiter, all the line is text to accumulate.
-                    if not from then
-                        local normal_text = line:sub(unread)
-                        table.insert(accumulated, normal_text)
-                        break
-                    else -- Found a delimiter. Add text till its start, if any.
-                        local normal_text = line:sub(unread, from - 1)
-                        if #normal_text ~= 0 then
-                            table.insert(accumulated, normal_text)
-                        end
-                        flush_accumulated()
-
-                        special, unread = new_context(line, to + 1)
-                        -- If we reached EOL, add an empty code chunk.
-                        if unread > #line then
-                            chunks:append('', line_count, special)
-                        end
-                    end
-                else
-                    -- We are in code mode now. If the line ends in code mode,
-                    -- push that, and we will continue on the next line.
-                    if not from then
-                        chunks:append(line:sub(unread, #line), line_count, special)
-                        break
-                    else
-                        local rest = line:sub(unread, from - 1)
+                -- If no `from`, then no delimiter was found and hence no change
+                -- in state: we are still in normal or still in normal mode.
+                if not from then
+                    local rest = line:sub(unread)
+                    -- Code should be added chunk by chunk because each new
+                    -- template line produces a new *numbered* line in the
+                    -- generated code. The others are accumulated till they end.
+                    if special == elt.Chunks.CODE then
                         chunks:append(rest, line_count, special)
-                        unread = to + 1
-                        special = false
+                    else
+                        table.insert(pending_text, rest .. '\n')
+                    end
+
+                    break
+                -- Now some delimiter found while being in text mode.
+                elseif not special then
+                    local normal_text = line:sub(unread, from - 1)
+                    if #normal_text ~= 0 then
+                        table.insert(pending_text, normal_text)
+                    end
+                    flush_pending()
+
+                    -- Text handled till the delimiter. Next loop will handle
+                    -- the special state from the new unread count.
+                    special, unread = new_context(line, to + 1)
+                    pending_line = line_count
+                -- Last case: a delimiter was found while in special mode, so it
+                -- is a closing one.
+                else
+                    local rest = line:sub(unread, from - 1)
+                    if special == elt.Chunks.CODE then
+                        chunks:append(rest, line_count, special)
+                    else -- RAW or ESCAPE
+                        table.insert(pending_text, rest)
+                        chunks:append(table.concat(pending_text), pending_line, special)
+                        pending_text = {}
+                    end
+                    unread = to + 1
+                    special = false
+                    -- Handle a delimiter at end of line. We consider this as
+                    -- the newline being in text mode, and needing to be added.
+                    if unread > #line then
+                        table.insert(pending_text, '\n')
                     end
                 end
-            end
-        end
-        flush_accumulated()
+            end -- while (loop over line contents)
+        end -- for (loop over lines)
+        flush_pending()
 
         return chunks
     end,
