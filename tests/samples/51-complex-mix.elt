@@ -1,0 +1,10 @@
+Hello <%= name %>
+Here are your items:
+% for i, item in pairs(list) do
+* <%= item %>
+% end
+
+
+Normal text after two empty lines.
+<% if true then %>This will be printed.<% end %>
+<% if false then %>This will NOT be printed.<% end %>

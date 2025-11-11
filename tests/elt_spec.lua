@@ -274,6 +274,11 @@ describe('Parser class', function()
             assert.is_same(chunks, {'hello\nworld\n'})
         end)
 
+        it('parses lists of strings with empty lines', function()
+            local chunks = parser:parse({'hello', '', '', 'world'})
+            assert.is_same(chunks, {'hello\n\n\nworld\n'})
+        end)
+
         it('parses the single line code mode', function()
             local chunks = parser:parse('% if something then')
             assert.is_same(chunks, {
@@ -629,6 +634,7 @@ describe('The render function', function()
             '01-hello-world',
             '02-no-nl-at-eof',
             '03-multiple-lines',
+            '04-empty-lines',
             '11-hello-void',
             '12-hello-void',
             '13-hello-void',
@@ -642,6 +648,7 @@ describe('The render function', function()
             '31-skips-newline',
             '32-skips-newline',
             '33-list-in-loop',
+            '51-complex-mix',
         }
         local data = {
             name='world',

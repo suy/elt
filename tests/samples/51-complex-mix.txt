@@ -1,0 +1,10 @@
+Hello world
+Here are your items:
+* foo
+* bar
+* baz
+
+
+Normal text after two empty lines.
+This will be printed.
+

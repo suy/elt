@@ -239,7 +239,8 @@ elt.Parser = {
 
         for line in elt.Parser.wrap_source(source) do
             line_count = line_count + 1
-            local unread = 1
+            -- Unread characters. Start at 0, to account for empty lines.
+            local unread = 0
 
             -- Handle the "whole line is code" case (if its delimiter exists).
             if not special and delimiters.line and #delimiters.line ~= 0 then
