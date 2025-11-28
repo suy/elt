@@ -158,4 +158,26 @@ include::33-list-in-loop.elt[]
 include::33-list-in-loop.txt[]
 
 
+|Complex mix
+|
+[source,lua]
+--
+include::51-complex-mix.elt[]
+--
+|
+[source,txt]
+--
+include::51-complex-mix.txt[]
+--
+
+
+|Print delimiters
+|
+[source,lua]
+include::52-print-delimiters.elt[]
+|
+[source,txt]
+include::52-print-delimiters.txt[]
+
+
 |===

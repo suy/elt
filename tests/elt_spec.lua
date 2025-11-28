@@ -649,6 +649,7 @@ describe('The render function', function()
             '32-skips-newline',
             '33-list-in-loop',
             '51-complex-mix',
+            '52-print-delimiters',
         }
         local data = {
             name='world',
