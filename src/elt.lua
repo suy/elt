@@ -395,7 +395,7 @@ end
 elt.compile = function(source, options)
     options = options or {}
     local implementation = elt.to_code(source, options)
-    local code_name = options.code_name or "elt"
+    local code_name = options.code_name or 'elt'
 
     local template, message = elt.loader(implementation, code_name)
 
