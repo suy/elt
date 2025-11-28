@@ -411,10 +411,10 @@ end
 
 
 
-elt.render = function(text, ...)
-    local compiled, message = elt.compile(text)
+elt.render = function(text, environment, options, buffer)
+    local compiled, message = elt.compile(text, options)
     if compiled then
-        return compiled(...)
+        return compiled(environment, buffer)
     else
         return nil, message
     end
