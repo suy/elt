@@ -221,16 +221,16 @@ elt.Parser = {
         -- Returns which kind of special mode we are in (raw, escape or code).
         --- @return Chunks.Kind, integer
         local function new_context(line, from)
-            if delimiters.raw and #delimiters.raw ~= 0 then
-                local start, finish = line:find(delimiters.raw, from)
-                if start then
-                    return elt.Chunks.RAW, finish + 1
+            local delimiter_raw = delimiters.raw and #delimiters.raw or 0
+            local delimiter_escape = delimiters.escape and #delimiters.escape or 0
+            if delimiter_raw ~= 0 then
+                if line:sub(from, from + delimiter_raw - 1) == delimiters.raw then
+                    return elt.Chunks.RAW, from + delimiter_raw
                 end
             end
-            if delimiters.escape and #delimiters.escape ~= 0 then
-                local start, finish = line:find(delimiters.escape, from)
-                if start then
-                    return elt.Chunks.ESCAPE, finish + 1
+            if delimiter_escape ~= 0 then
+                if line:sub(from, from + delimiter_escape - 1) == delimiters.escape then
+                    return elt.Chunks.ESCAPE, from + delimiter_escape
                 end
             end
 

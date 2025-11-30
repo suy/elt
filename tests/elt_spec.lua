@@ -326,6 +326,16 @@ describe('Parser class', function()
             })
         end)
 
+        it('does only look at the printing delimiter immediately after the open delimiter', function()
+            -- This tests a bug that the library had at some point, in which it
+            -- got confused by the equal sign in the middle of the code.
+            local chunks = parser:parse('<% for index = 1, 3 do %>')
+            assert.is_same(chunks, {
+                {' for index = 1, 3 do ', 1, elt.Chunks.CODE},
+                '\n',
+            })
+        end)
+
         --
         -- Start mixing modes.
         --
