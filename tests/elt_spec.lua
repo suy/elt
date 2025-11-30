@@ -658,6 +658,8 @@ describe('The render function', function()
             '31-skips-newline',
             '32-skips-newline',
             '33-list-in-loop',
+            '34-list-in-loop',
+            '35-list-in-loop',
             '51-complex-mix',
             '52-print-delimiters',
         }

@@ -158,6 +158,28 @@ include::33-list-in-loop.elt[]
 include::33-list-in-loop.txt[]
 
 
+|Mixed code and text and newlines 1
+|
+[source,lua]
+include::34-list-in-loop.elt[]
+|
+[source,txt]
+--
+include::34-list-in-loop.txt[]
+--
+
+
+|Mixed code and text and newlines 2
+|
+[source,lua]
+include::35-list-in-loop.elt[]
+|
+[source,txt]
+--
+include::35-list-in-loop.txt[]
+--
+
+
 |Complex mix
 |
 [source,lua]

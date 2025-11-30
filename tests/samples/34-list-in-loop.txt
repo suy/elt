@@ -1,0 +1,8 @@
+My list of items:
+
+* foo
+
+* bar
+
+* baz
+

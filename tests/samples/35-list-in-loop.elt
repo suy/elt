@@ -1,0 +1,4 @@
+My list of items:
+<% for _, item in ipairs(list) do
+%>* <%= item %>
+<% end %>
