@@ -393,7 +393,7 @@ end
 ---
 --- @param source string|table|function The template source to be compiled.
 --- @param options? table|nil Extra options.
---- @return function|nil
+--- @return nil|function(environment?: table, buffer?: table): string
 --- @return nil|string
 elt.compile = function(source, options)
     options = options or {}
