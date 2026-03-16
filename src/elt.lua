@@ -88,7 +88,7 @@ elt.Generator = {
     end,
 
     header = function(self)
-        self:push('local __buffer = ...\n')
+        self:push('local __buffer, __stringify, __escape = ...\n')
     end,
 
     footer = function(self)
@@ -124,9 +124,9 @@ elt.Generator = {
                 -- Similar to the literal string, but converting to string (and
                 -- perhaps escaping).
                 elseif kind == elt.Chunks.RAW then
-                    self:assign('tostring(' .. value .. ')')
+                    self:assign('__stringify(' .. value .. ')')
                 elseif kind == elt.Chunks.ESCAPE then
-                    self:assign('escape(tostring(' .. value .. '))')
+                    self:assign('__escape(__stringify(' .. value .. '))')
                 end
             else
                 error('unknown type ' .. tostring(kind))
@@ -335,7 +335,7 @@ end
 
 
 
-elt.execute = function(f, environment, buffer)
+elt.execute = function(f, environment, buffer, stringify, escape)
     environment = environment or {}
     buffer = buffer or {}
     local merged = setmetatable({}, {
@@ -343,17 +343,13 @@ elt.execute = function(f, environment, buffer)
             local value = environment[name]
             if value ~= nil then
                 return value
-            elseif name == 'tostring' then
-                return tostring
-            elseif name == 'escape' then
-                return elt.escape
             else
                 return _G[name]
             end
         end
     })
     setfenv(f, merged)
-    return f(buffer)
+    return f(buffer, stringify, escape)
 end
 
 
@@ -396,12 +392,15 @@ elt.compile = function(source, options)
     options = options or {}
     local implementation = elt.to_code(source, options)
     local code_name = options.code_name or 'elt'
+    local escape = options.escape or elt.escape
+    local stringify = tostring
 
     local template, message = elt.loader(implementation, code_name)
 
     if template then
         return function(environment, buffer)
-            return table.concat(elt.execute(template, environment, buffer))
+            local output = elt.execute(template, environment, buffer, stringify, escape)
+            return table.concat(output)
         end
     else
         return nil, message

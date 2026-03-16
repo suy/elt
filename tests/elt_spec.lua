@@ -99,7 +99,7 @@ describe('Generator class', function()
 
         it('generates a basic program with empty chunks', function()
             local result = generator:generate(chunks)
-            assert.is_not_nil(result:find('local __buffer = ...', 1, plain_text))
+            assert.is_not_nil(result:find('local __buffer, __stringify, __escape = ...', 1, plain_text))
             assert.is_not_nil(result:find('return __buffer', 1, plain_text))
         end)
 
@@ -124,14 +124,14 @@ describe('Generator class', function()
         it('generates a program that interpolates values', function()
             chunks:append('interpolated', 42, chunks.RAW)
             local result = generator:generate(chunks)
-            local pattern = [=[--[[42]] table.insert(__buffer, tostring(interpolated))]=]
+            local pattern = [=[--[[42]] table.insert(__buffer, __stringify(interpolated))]=]
             assert.is_not_nil(result:find(pattern, 1, plain_text))
         end)
 
         it('generates a program that interpolates and escapes values', function()
             chunks:append('escaped', 42, chunks.ESCAPE)
             local result = generator:generate(chunks)
-            local pattern = [=[--[[42]] table.insert(__buffer, escape(tostring(escaped)))]=]
+            local pattern = [=[--[[42]] table.insert(__buffer, __escape(__stringify(escaped)))]=]
             assert.is_not_nil(result:find(pattern, 1, plain_text))
         end)
 
@@ -147,7 +147,7 @@ describe('Generator class', function()
                 self:assign(('%q'):format('Special start'))
             end
             local result = generator:generate(chunks)
-            assert.is_same(result[1], 'local __buffer = ...\n')
+            assert.is_same(result[1], 'local __buffer, __stringify, __escape = ...\n')
             assert.is_same(result[2], 'table.insert(__buffer, ')
             assert.is_same(result[3], '"Special start"')
             assert.is_same(result[4], ')\n')
