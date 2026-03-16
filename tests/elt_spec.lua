@@ -693,4 +693,46 @@ describe('The render function', function()
 
         end
     end)
+
+    it('supports the escape option correctly', function()
+        local options = {}
+        local context = {}
+        local hardcoded = function()
+            return "hardcoded"
+        end
+
+        context.bad = 42
+        assert.equal(elt.render('<%! bad %>', context, options), '42\n')
+
+        options.escape = hardcoded
+        assert.equal(elt.render('<%! bad %>', context, options), 'hardcoded\n')
+
+        context.bad = '<script>alert("xss")</script>'
+        options.escape = elt.escape_html
+        assert.equal(elt.render('<%! bad %>', context, options),
+            '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;\n')
+
+        -- Escape function can't be shadowed (accidentally or maliciously).
+        context.__escape = false
+        assert.equal(elt.render('<%! bad %>', context, options),
+            '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;\n')
+        context.__escape = function(value) return value end
+        assert.equal(elt.render('<%! bad %>', context, options),
+            '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;\n')
+    end)
+
+    it('escapes correctly when setting the escape function globally', function()
+        local options = {}
+        local context = {}
+
+        context.bad = '<script>alert("xss")</script>'
+        elt.escape = elt.escape_html
+        assert.equal(elt.render('<%! bad %>', context, options),
+            '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;\n')
+        -- Restore it.
+        elt.escape = function(value)
+            return value
+        end
+    end)
+
 end)

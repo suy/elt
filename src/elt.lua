@@ -21,6 +21,13 @@ elt.escape = function(value)
     return value
 end
 
+elt.escape_html = function(value)
+    return (value:gsub('[&<>"\'`]', {
+        ['&']  = '&amp;',  ['<'] = '&lt;',  ['>'] = '&gt;',
+        ['"']  = '&quot;', ["'"] = '&#39;', ['`'] = '&#96;',
+    }))
+end
+
 
 
 
