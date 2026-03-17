@@ -633,6 +633,15 @@ describe('The `compile` function', function()
         assert.is_same(template(), 'Hello global\n')
         _G.greeting_name = nil
     end)
+
+    it('creates a function that can take a buffer to append to', function()
+        local hello = elt.compile('Hello')
+        local world = elt.compile('world')
+        local buffer = { 'Previous content\n' }
+        hello({}, buffer)
+        world({}, buffer)
+        assert.is_same(buffer, { 'Previous content\n', 'Hello\n', 'world\n' })
+    end)
 end)
 
 

@@ -385,15 +385,29 @@ end
 --- iterator is `io.lines`, which can be used to retrieve the text from a file
 --- one by one.
 ---
---- The options are not required, but allow to override the defaults, which are
---- * elt.Parser for parsing the template into fragments of code or text
---- * elt.Generator for generating Lua code to be compiled
---- * elt.delimiters for the characters to use as delimiters in templates
---- * elt.code_name for the name to give the `load` function
+--- The options are not required, but allow to override the defaults, which are:
+--- * elt.Parser for parsing the template into fragments of code or text.
+--- * elt.Generator for generating Lua code to be compiled.
+--- * elt.delimiters for the characters to use as delimiters in templates.
+--- * elt.code_name for the name to give the `load` function.
+---
+--- In case of success, a function is returned. The function returns a string of
+--- text with the desired output when called:
+---
+--- ```lua
+--- local template = elt.compile('<%= os.date("%Y-%m-%d %H:%M:%S") %>')
+--- print(template()) --> "2026-03-17 12:05:40" (or whichever date you are on)
+--- ```
+---
+--- The returned function has two optional parameters. The first one is the
+--- environment that the template will see, where you will insert your own data
+--- for the template to display. The second one is a "buffer" in the form of a
+--- string array. If a buffer is passed, the function wont return a string, and
+--- instead will add output to the buffer. See the documentation for details.
 ---
 --- @param source string|table|function The template source to be compiled.
 --- @param options? table|nil Extra options.
---- @return nil|function(environment?: table, buffer?: table): string
+--- @return nil|function(environment?: table, buffer?: table): string?
 --- @return nil|string
 elt.compile = function(source, options)
     options = options or {}
@@ -407,7 +421,9 @@ elt.compile = function(source, options)
     if template then
         return function(environment, buffer)
             local output = elt.execute(template, environment, buffer, stringify, escape)
-            return table.concat(output)
+            if not buffer then
+                return table.concat(output)
+            end
         end
     else
         return nil, message
