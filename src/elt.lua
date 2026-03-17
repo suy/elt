@@ -1,11 +1,11 @@
--- Copyright (c) 2024-2025 Alejandro Exojo Piqueras
+-- Copyright (c) 2024-2026 Alejandro Exojo Piqueras
 -- SPDX-License-Identifier: MIT
 
 local tostring = tostring
 
 local elt = {}
 
-elt._COPYRIGHT   = 'Copyright (c) 2024 Alejandro Exojo Piqueras'
+elt._COPYRIGHT   = 'Copyright (c) 2024-2026 Alejandro Exojo Piqueras'
 elt._DESCRIPTION = 'Template engine in pure Lua'
 elt._VERSION = '0.1.0'
 
