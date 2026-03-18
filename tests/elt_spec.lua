@@ -99,14 +99,14 @@ describe('Generator class', function()
 
         it('generates a basic program with empty chunks', function()
             local result = generator:generate(chunks)
-            assert.is_not_nil(result:find('local __buffer, __stringify, __escape = ...', 1, plain_text))
+            assert.is_not_nil(result:find('local __insert, __buffer, __stringify, __escape = ...', 1, plain_text))
             assert.is_not_nil(result:find('return __buffer', 1, plain_text))
         end)
 
         it('generates a program that produces basic text', function()
             chunks:append([[Bob's "regular" text]])
             local result = generator:generate(chunks)
-            local pattern = [[table.insert(__buffer, "Bob's \"regular\" text")]]
+            local pattern = [[__insert(__buffer, "Bob's \"regular\" text")]]
             assert.is_not_nil(result:find(pattern, 1, plain_text))
         end)
 
@@ -115,7 +115,7 @@ describe('Generator class', function()
             chunks:append('Condition was true')
             chunks:append('end', 44, chunks.CODE)
             local result = generator:generate(chunks)
-            local pattern = [[table.insert(__buffer, "Condition was true")]]
+            local pattern = [[__insert(__buffer, "Condition was true")]]
             assert.is_not_nil(result:find([=[--[[42]] if condition then]=], 1, plain_text))
             assert.is_not_nil(result:find(pattern, 1, plain_text))
             assert.is_not_nil(result:find([=[--[[44]] end]=], 1, plain_text))
@@ -124,14 +124,14 @@ describe('Generator class', function()
         it('generates a program that interpolates values', function()
             chunks:append('interpolated', 42, chunks.RAW)
             local result = generator:generate(chunks)
-            local pattern = [=[--[[42]] table.insert(__buffer, __stringify(interpolated))]=]
+            local pattern = [=[--[[42]] __insert(__buffer, __stringify(interpolated))]=]
             assert.is_not_nil(result:find(pattern, 1, plain_text))
         end)
 
         it('generates a program that interpolates and escapes values', function()
             chunks:append('escaped', 42, chunks.ESCAPE)
             local result = generator:generate(chunks)
-            local pattern = [=[--[[42]] table.insert(__buffer, __escape(__stringify(escaped)))]=]
+            local pattern = [=[--[[42]] __insert(__buffer, __escape(__stringify(escaped)))]=]
             assert.is_not_nil(result:find(pattern, 1, plain_text))
         end)
 
@@ -147,8 +147,8 @@ describe('Generator class', function()
                 self:assign(('%q'):format('Special start'))
             end
             local result = generator:generate(chunks)
-            assert.is_same(result[1], 'local __buffer, __stringify, __escape = ...\n')
-            assert.is_same(result[2], 'table.insert(__buffer, ')
+            assert.is_same(result[1], 'local __insert, __buffer, __stringify, __escape = ...\n')
+            assert.is_same(result[2], '__insert(__buffer, ')
             assert.is_same(result[3], '"Special start"')
             assert.is_same(result[4], ')\n')
         end)
@@ -535,7 +535,7 @@ describe('The `amend_error` function', function()
 
         code = wrap({
             '--[[1]] if true then',
-            '--[[2]] table.insert(__buffer, __stringify( 42|0 ))',
+            '--[[2]] __insert(__buffer, __stringify( 42|0 ))',
             '--[[3]] end',
         })
         template, original = loader(code)
@@ -548,7 +548,7 @@ describe('The `amend_error` function', function()
 
         code = wrap({
             '--[[1]] if true then',
-            '--[[2]] table.insert(__buffer, __stringify( valid ))',
+            '--[[2]] __insert(__buffer, __stringify( valid ))',
             '--[[3]] end',
             '--[[4]] failure_here',
         })
@@ -593,13 +593,13 @@ describe('The `execute` function', function()
         local prefilled_buffer = {'previous text'}
         local environment = {example=true, value=42}
 
-        local f = function(buffer)
+        local f = function(insert, buffer)
             called = true
-            table.insert(buffer, 'new content')
+            insert(buffer, 'new content')
             if example then
-                table.insert(buffer, 'example was true')
+                insert(buffer, 'example was true')
             end
-            table.insert(buffer, tostring(value))
+            insert(buffer, tostring(value))
 
             return buffer
         end
@@ -799,6 +799,14 @@ describe('The render function', function()
         elt.escape = function(value)
             return value
         end
+    end)
+
+    -- We used to use `table.insert` in the template implementation to append to
+    -- the buffer. Now we pass that function as an argument, so `table` is free.
+    it('supports the name `table` in the context', function()
+        local context = { table = 'correct' }
+        assert.equal(elt.render('<%! table %>', context),
+            'correct\n')
     end)
 
 end)

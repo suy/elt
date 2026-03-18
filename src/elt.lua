@@ -95,7 +95,7 @@ elt.Generator = {
     end,
 
     header = function(self)
-        self:push('local __buffer, __stringify, __escape = ...\n')
+        self:push('local __insert, __buffer, __stringify, __escape = ...\n')
     end,
 
     footer = function(self)
@@ -107,7 +107,7 @@ elt.Generator = {
     end,
 
     assign = function(self, value)
-        self:push('table.insert(__buffer, ', value, ')\n')
+        self:push('__insert(__buffer, ', value, ')\n')
     end,
 
     generate = function(self, chunks)
@@ -387,7 +387,7 @@ elt.execute = function(f, environment, buffer, stringify, escape)
         end
     })
     setfenv(f, merged)
-    return f(buffer, stringify, escape)
+    return f(table.insert, buffer, stringify, escape)
 end
 
 
