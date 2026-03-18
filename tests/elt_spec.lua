@@ -507,6 +507,63 @@ end)
 
 
 --------------------------------------------------------------------------------
+describe('The `amend_error` function', function()
+    it('rewrites the line number to reference the template line', function()
+        -- Copied from `elt.loader`. This is pretty much everything it does.
+        local loader = function(code_text, code_name)
+            local load_function = type(loadstring) == 'function' and loadstring or load
+            return load_function(code_text, code_name)
+        end
+
+        local prefix = 'local __buffer, __stringify, __escape = ...'
+        local postfix = 'return __buffer'
+        local function wrap(code)
+            table.insert(code, 1, prefix)
+            table.insert(code, postfix)
+            return table.concat(code, '\n')
+        end
+
+        local code = wrap({'--[[1]] if true then'})
+        local template, original = loader(code)
+        assert.is_nil(template)
+        assert.is_string(original)
+        local amended = elt.amend_error(original, code)
+        assert.is_string(amended)
+        -- Fail at finding the original line indicator.
+        assert.is_nil(amended:find(':2:', 1, plain_text))
+        assert.is_not_nil(amended:find(':~1(template):', 1, plain_text))
+
+        code = wrap({
+            '--[[1]] if true then',
+            '--[[2]] table.insert(__buffer, __stringify( 42|0 ))',
+            '--[[3]] end',
+        })
+        template, original = loader(code)
+        assert.is_nil(template)
+        assert.is_string(original)
+        amended = elt.amend_error(original, code)
+        assert.is_string(amended)
+        assert.is_nil(amended:find(':3:', 1, plain_text))
+        assert.is_not_nil(amended:find(':~2(template):', 1, plain_text))
+
+        code = wrap({
+            '--[[1]] if true then',
+            '--[[2]] table.insert(__buffer, __stringify( valid ))',
+            '--[[3]] end',
+            '--[[4]] failure_here',
+        })
+        template, original = loader(code)
+        assert.is_nil(template)
+        assert.is_string(original)
+        amended = elt.amend_error(original, code)
+        assert.is_string(amended)
+        assert.is_nil(amended:find(':6:', 1, plain_text))
+        assert.is_not_nil(amended:find(':~4(template):', 1, plain_text))
+    end)
+end)
+
+
+--------------------------------------------------------------------------------
 describe('The `loader` function', function()
     it('returns a callable function from correct Lua code in a string', function()
         local callable, err = elt.loader('return 42')

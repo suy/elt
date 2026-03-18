@@ -323,9 +323,40 @@ elt.Parser.__index = elt.Parser
 
 
 
-local function parse_error(message, _code)
+--- Fixes the error message to be more useful to the template writer.
+---
+--- Tries to locate the line that the loader function failed to load, and if
+--- found, changes it to a number line that resembles better to what the
+--- template author wrote.
+--- @param message string Text with the original error message.
+--- @param code string Code that has failed to be loaded.
+--- @return string # Amended error message.
+elt.amend_error = function(message, code)
+    -- Lua load errors look like: "[string "..."]:N: <description>"
+    local number = message:match(':(%d+):')
+    if not number then
+        return message
+    end
+    -- Split the code back into an `string[]`, so we can iterate over it in
+    -- reverse to find the closest `--[[N]]` at or before the reported line.
+    local lines = {}
+    for line in code:gmatch('[^\n]+') do
+        table.insert(lines, line)
+    end
+    local pattern = '^%-%-%[%[(%d+)%]%]' -- Pattern to match `--[[N]]`.
+    for line = tonumber(number), 1, -1 do
+        local found = lines[line]:match(pattern)
+        if found then
+            local result, _ = message:gsub(':' .. number .. ':',
+                                           ':~' .. found .. '(template):')
+            return result -- To make the LSP happier about the return values.
+        end
+    end
     return message
 end
+
+
+
 
 --- @param code_text string Text with the code to load.
 --- @param code_name string|nil Name to pass to the `load` function.
@@ -334,7 +365,7 @@ elt.loader = function(code_text, code_name)
     local load_function = type(loadstring) == 'function' and loadstring or load
     local code_function, message = load_function(code_text, code_name)
     if not code_function then
-        return nil, parse_error(message, code_text)
+        return nil, elt.amend_error(message --[[@as string]], code_text)
     end
     return code_function
 end
