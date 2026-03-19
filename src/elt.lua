@@ -21,11 +21,14 @@ elt.escape = function(value)
     return value
 end
 
+-- Cache the replacement table to avoid reconstructing it on every call.
+local escape_html_replacements = {
+    ['&']  = '&amp;',  ['<'] = '&lt;',  ['>'] = '&gt;',
+    ['"']  = '&quot;', ["'"] = '&#39;', ['`'] = '&#96;',
+}
+
 elt.escape_html = function(value)
-    return (value:gsub('[&<>"\'`]', {
-        ['&']  = '&amp;',  ['<'] = '&lt;',  ['>'] = '&gt;',
-        ['"']  = '&quot;', ["'"] = '&#39;', ['`'] = '&#96;',
-    }))
+    return (value:gsub('[&<>"\'`]', escape_html_replacements))
 end
 
 
