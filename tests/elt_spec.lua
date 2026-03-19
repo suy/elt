@@ -565,6 +565,24 @@ end)
 
 --------------------------------------------------------------------------------
 describe('The `loader` function', function()
+    -- For Lua >=5.2 compatibility.
+    local setfenv = setfenv or function(wrapped, environment)
+        local upvalue = 1
+        while true do
+            local name = debug.getupvalue(wrapped, upvalue)
+            if name == '_ENV' then
+                debug.upvaluejoin(wrapped, upvalue, (function()
+                    return environment
+                end), 1)
+                break
+            elseif not name then
+                break
+            end
+            upvalue = upvalue + 1
+        end
+        return wrapped
+    end
+
     it('returns a callable function from correct Lua code in a string', function()
         local callable, err = elt.loader('return 42')
         assert.is_function(callable)
