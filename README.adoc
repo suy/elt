@@ -1,0 +1,560 @@
+= ELT: Embedded Lua Templates
+:toc: right
+:toc-title:
+:toclevels: 3
+:sectanchors:
+:sectnums:
+:idprefix:
+:source-highlighter: highlight.js
+
+:TemplateEngine: https://en.wikipedia.org/wiki/Template_processor[template engine]
+:Etlua: https://github.com/leafo/etlua[etlua]
+:ERuby: https://en.wikipedia.org/wiki/ERuby[embedded Ruby]
+:MIT: https://en.wikipedia.org/wiki/MIT_License[MIT license]
+:Moonscript: https://moonscript.org/[Moonscript]
+
+ELT is a library that implements a {TemplateEngine} for Lua. In other words, it
+provides the code to convert a text template (a text with parameters that need
+to be replaced, and which supports logic for loops, conditions, etc.) into the
+desired final result. It is fairly influenced on the design of {Etlua}, and it
+takes from it the high level architecture (but no code, as this project is
+written directly in Lua instead of {Moonscript}, and some details are very
+different). It also takes inspiration from {ERuby} and other templates I've used
+on the past. It is licensed under the {MIT}.
+
+
+
+
+== Synopsis
+
+Given the following template is stored in `example.elt`:
+
+[source,lua]
+----
+Hello <%= name %>
+Here are your items:
+% for _, item in pairs(list) do
+* <%= item %>
+% end
+----
+
+Then the following code can be used to render it:
+
+[source,lua]
+----
+local elt = require 'elt'
+local template = elt.compile(io.lines('example.elt'))
+print(template({
+    name='world',
+    list={'foo', 'bar', 'baz'}
+}))
+----
+
+And it will produce the following output:
+
+[listing]
+....
+Hello world
+Here are your items:
+* foo
+* bar
+* baz
+
+....
+
+The ELT library does so by performing a few steps which you don't need to
+understand, but those steps are well documented and exposed in code, in case you
+need to check what's going on, and/or customize behavior. In a nutshell, ELT
+will convert the text template to Lua code, and that code will be loaded and
+wrapped as a function that can accept parameters, as shown in the example above.
+
+The documentation in this README is written with a "top-down" approach, so we
+start by looking at just what the templates can do, and what you need to know as
+a template author, then we follow with the 2 only functions that you probably
+need to know, and then we get into more involved details.
+
+TIP: Most people will only need to know about the <<#template_language>> and the
+<<#basics_render_and_compile>> sections. Some people might not need to read
+anything more from this documentation if they are already familiar enough with
+templates.
+
+
+
+
+== Template language
+
+These are the different things that an ELT template can contain:
+
+. Normal text. Text that will be printed *as is* in the output when a template
+  is executed.
+. Lua code to run. This will be executed when the template is executed. It is
+  used to make decisions on what to print (conditions, loops, etc.).
+. A Lua expression to print. It will typically be a variable that needs to be
+  converted to text and printed in the output.
+. A Lua expression to print, but escaped. Like above, but run first through a
+  function that might convert it to prevent undesired input text.
+
+WARNING: The default escape function does nothing. See the
+<<#changing_the_escape_function>> section to set it to HTML escaping or your
+desired escaping.
+
+You exit normal text when the open delimiter appears, and enter it again when
+the close delimiter appears. Both delimiters can be changed to your liking, but
+by default those are `<%` and `%>`, respectively.
+
+Immediately after the opening delimiter, ELT looks for an extra special text (as
+explained below). If it is not found, the text in between delimiters is normal
+Lua code to run when the template is executed. Use that code to define or call
+functions, compute values, and make loops and conditionals. For example:
+
+[source,lua]
+----
+Normal text.
+<% if true then %>Will be printed<% end %>
+<% if false then %>Will NOT be printed<% end %>
+----
+
+TIP: The spaces before and after the delimiters are purely for readability.
+`<%end%>` or `<% end %>` or `<%end   %>` are entirely equivalent.
+
+You'll often will want to print a value stored in a Lua variable instead of
+fixed text. You can print it "raw", or "escaped". The raw value will be passed
+to the `tostring` function, and its return value will be printed. The escaped
+value will additionally be passed to an `escape` function before printing, to
+prevent undesired output. To print a value, follow the opening delimiter by
+either the `raw` or `escape` delimiter. By default, those delimiters are
+respectively `=` (mnemonic: "exactly like this", like in a Lua REPL) and `!`
+(mnemonic: "caution!"). The delimiters can be changed to your liking and can be
+any string, not just one character.
+
+This is an example of how to print a variable:
+
+[source,lua]
+----
+The Lua version where this template is running is <%= _VERSION %>.
+----
+
+The above will just print the text of the global Lua variable `_VERSION`. See
+below how a developer can pass variables from code to template (much recommended
+over global variables). If no variables are passed, the template will only have
+access to globals.
+
+Templates are not limited to fixed variables. They can call functions or any
+other kind of valid Lua expression:
+
+[source,lua]
+----
+The current date is: <%= os.date("%Y-%m-%d %H:%M:%S") %>
+2 + 2 = <%= 2+2 %>.
+----
+
+In addition to all of the above, you can interrupt the normal as-is text to
+insert a single line of Lua code. That is done with the `line` delimiter, which
+by default is `%`. That delimiter has to be exactly at the start of a line, and
+has the benefit of being shorter, and not adding any kind of new line characters
+to the output of the template.
+
+[source,lua]
+----
+% for index = 1, 3 do
+<%= index %>
+% end
+----
+
+The above template produces exactly 3 lines of output, one for each `<%= index
+%>` iteration of the loop. The lines of code produce no output at all by their
+own, but can be useful for logic like above, or for adding comments. Conversely,
+the following produces one empty line at the start, and another one at the end
+(in addition to the other 3 lines with the numbers):
+
+[source,lua]
+----
+<% for index = 1, 3 do %>
+<%= index %>
+<% end %>
+----
+
+This behavior can be used to control whitespace. The following produces `Hello
+world` in a single line (it also showcases how to insert comments that won't
+show in the output):
+
+[source,lua]
+----
+Hello<%
+-- Ignored entirely
+%> world
+----
+
+TIP: Check out the reference document, which contains a few more samples of code
+with their expected output.
+
+[TIP]
+====
+The delimiters can be changed, so it is better to choose ones that never
+should appear in what the template needs to output. If you cannot change them
+(or don't want to), you can still make them show in the output like in the
+following example (where we use the fact that any expression can be printed,
+including strings or a expression that concatenates strings):
+
+[source,lua]
+----
+local elt = require 'elt'
+print(elt.render('Opening: <%= "<%" %>'))
+--> "Opening: <%"
+print(elt.render('Closing: <%= "%" .. ">" %>'))
+--> "Closing: %>"
+----
+====
+
+
+
+
+== Library API
+
+
+
+=== Basics: render and compile
+
+If you just want to run a template once, you can use the `elt.render` function
+to do it all in one go, as simply as possible:
+
+[source,lua]
+----
+local elt = require 'elt'
+print(elt.render('Hello <%= name %>', { name='Alice' }))
+--> "Hello Alice"
+----
+
+As shown in the previous example, the template text can be passed as a string,
+but it can also be a list of strings or even a line iterator, like `io.lines`
+(if you don't know much about iterators, just know that `io.lines` is a very
+convenient Lua facility to read a file line by line, and this library supports
+it). Examples:
+
+[source,lua]
+----
+local elt = require 'elt'
+print(elt.render({'Hello', '<%= name %>'}, { name='Alice' }))
+--> "Hello\nAlice"
+print(elt.render(io.lines('mytemplate.elt'), { name='Alice' }))
+--> "Hello Alice"
+----
+
+If you just want to render the template once, then `render` is fine, but if you
+need to render it more than once, specially with different variables, you'll
+want to use the `compile` function. This is still doing most of the work, but it
+will keep that work saved as a function that you can call multiple times
+efficiently:
+
+[source,lua]
+----
+local elt = require 'elt'
+local template = elt.compile('Hello <%= name %>')
+print(template({ name='Alice' })) --> "Hello Alice"
+print(template({ name='Bob' }))   --> "Hello Bob"
+----
+
+If the `compile` or `render` functions fail because the template has a syntax
+issue, the first returned value will be `nil`, and the second will be an error
+message:
+
+[source,lua]
+----
+local elt = require 'elt'
+local template, message = elt.compile('Hello <% invalid_expression %>')
+if not template then
+    error(message)
+else
+    print(template())
+end
+----
+
+
+
+.A note on error messages
+****
+The ELT library works by generating new Lua code from your template. That code
+is generated in memory and loaded by the Lua interpreter when you compile or
+render your template like in the examples above. You don't normally need to be
+concerned or even interested about this.
+
+However, if your template has errors, the compilation will fail, and an error
+message will be produced. The Lua interpreter will provide the error message (as
+shown above), but since the interpreter only sees the generated code, and not
+your template, it might report wrong line numbers. ELT tries to amend those
+error messages so the line numbers are as correct as possible, but this might
+not be perfect. Feel free to report issues about this if you find error messages
+with too wrong line numbers.
+
+Additionally, the errors might not be too meaningful for you. For example, the
+above snippet generates this error:
+
+    [string "elt"]:~1(elt): '=' expected near 'table'
+
+Notice the line number was amended by ELT to refer to the right line on the
+template (the first), but the message refers to a `table` that doesn't make much
+sense to the template author. See the <<#details_generated_code>> section for
+more information and a way to diagnose errors.
+****
+
+
+==== Changing delimiters
+
+The `compile` function accepts some extra options. Some are a bit advanced and
+are explained in the advanced API, but one is pretty simple, and it just allows
+to change the delimiters:
+
+[source,lua]
+----
+local elt = require 'elt'
+local template = elt.compile(
+    'Hello {{{<= name }}}',
+    {
+        delimiters = {
+            open='{{{', close='}}}', raw='<='
+        }
+    }
+)
+print(template({ name='Alice' })) --> "Hello Alice"
+----
+
+The delimiters can also be changed globally, by changing the `elt.delimiters`
+table:
+
+[source,lua]
+----
+local elt = require 'elt'
+elt.delimiters.open = '{{{'
+elt.delimiters.close = '}}}'
+elt.delimiters.raw = '<='
+local template = elt.compile('Hello {{{<= name }}}')
+print(template({ name='Alice' })) --> "Hello Alice"
+----
+
+Overwriting the delimiters in the library is convenient, but you won't be able
+to use the default ones unless you provide them manually yourself. If you want
+to use both the default ones and some different ones, better pass them in the
+call to `compile`. The default delimiters are:
+
+[source,lua]
+----
+elt.delimiters = {
+    open = '<%',
+    close = '%>',
+    line = '%',
+    raw = '=',
+    escape = '!',
+}
+----
+
+
+
+==== Changing the escape function
+
+The default escaping function does nothing, as ELT is not specific to any output
+format. Since generating HTML is fairly common, ELT provides a function to
+escape HTML to guard the output from malicious input:
+
+
+[source,lua]
+----
+local elt = require 'elt'
+local options = {
+    escape = elt.escape_html
+}
+local template = elt.compile('Hello <%! user %>.', options)
+local input = {
+    user = '<script>alert("XSS")</script>'
+}
+print(template(input))
+--> Hello &lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;.
+----
+
+
+
+==== Reusing the output buffer
+
+The function returned by `elt.compile` takes a second optional argument: an
+output buffer (an array of strings). In that array, you can provide previous
+content if you wish, but the most useful feature is that the buffer will allow
+to chain the output from one template to a subsequent one. This can be more
+efficient in some cases if you need to use the library in such a way.
+
+[source,lua]
+----
+local elt = require 'elt'
+local inspect = require 'inspect' -- From: https://github.com/kikito/inspect.lua
+
+local hello = elt.compile('Hello')
+local world = elt.compile('world')
+local buffer = { 'Previous content\n' }
+hello({}, buffer)
+world({}, buffer)
+print(inspect(buffer)) --> { "Previous content\n", "Hello\n", "world\n" }
+----
+
+You can turn that buffer into a single string with `table.concat(buffer)`, which
+is what the template function does if a buffer is not provided. When a buffer is
+provided, the template function returned by `compile` does not return any
+output, as it is added to the buffer already.
+
+
+
+=== Details: generated code
+
+ELT exposes one function called `to_code` that shows some of what's going on
+under the hood without having to understand it much. You won't likely need this
+function, but it has its uses, like debugging template behavior, and
+precompiling templates.
+
+If your template it's not doing what you think it should, you can attempt to
+troubleshoot the issue by looking at the code that ELT generates for it, as this
+library works by converting the template to Lua code, and then wrapping it as a
+function that can be called (as seen in the examples above).
+
+[source,lua]
+----
+local elt = require 'elt'
+print(elt.to_code({'<% if true then %>', 'Name: <%=name%>', '<% end %>'}))
+----
+
+This will produce the following (or something slightly different but equivalent
+if the library changes its implementation):
+
+[listing]
+....
+local __buffer, __stringify, __escape = ...
+--[[1]]  if true then 
+table.insert(__buffer, "\
+Name: ")
+--[[2]] table.insert(__buffer, __stringify(name))
+table.insert(__buffer, "\
+")
+--[[3]]  end 
+table.insert(__buffer, "\
+")
+return __buffer
+....
+
+Basically, your fragments of template end up in the generated code in the
+following way:
+
+* Code gets passed as is, but gets prefixed with a comment, which indicates the
+  line number of the template file where the code originates from.
+* Text gets passed as is, but it gets wrapped in a string, and the string is
+  added to a buffer (where the template output gets stored).
+* Expressions to print get converted to a string, and that string gets added to
+  the output buffer.
+
+Hopefully by looking to that output you can diagnose issues, and understand
+better how the ELT library works.
+
+Additionally, note how storing that Lua code as a `.lua` file can also be useful
+to "precompile" the templates. If your templates don't change much, you can
+write them in `etl` files, then run some kind of build step that converts them
+to `lua` files. This is left as an exercise to the reader, given that it would
+depend a lot on the use case how it should be implemented (and it's a very
+uncommon use case). Just know that the functions `elt.loader` and `elt.execute`
+can be helpful for this. Look at the implementation of `elt.compile` for
+details.
+
+
+
+=== Advanced: Parser and Generator
+
+If you need more control, you can pass a custom `Parser` and/or a custom
+`Generator` to the `elt.compile` function. This function accepts an `options`
+second parameter, which is a table that can contain the `parser` and `generator`
+keys. Both `Parser` and `Generator` are Lua tables which are intended to be used
+as "classes". Both have a `new()` function that returns an instance of the
+class. The library expects an instance.
+
+This is how to make a custom `Parser` instance that measures the time it
+takes to parse a template:
+
+[source,lua]
+----
+-- Create a new instance.
+local custom = elt.Parser:new()
+-- Overwrite the parsing function. It measures time spent parsing and prints it.
+custom.parse = function(self, source, delimiters)
+    local start = os.clock()
+    -- This calls into Parser's original function (super() in other languages).
+    local result = elt.Parser.parse(self, source, delimiters)
+    print('Time used parsing:', os.clock() - start)
+    return result
+end
+local template = elt.compile(io.lines('example.elt'), {parser=custom})
+print(template({
+    name='world',
+    list={'foo', 'bar', 'baz'}
+}))
+----
+
+This is how to make a custom `Generator` that prepends a message to anything the
+template generates:
+
+[source,lua]
+----
+local elt = require 'elt'
+-- Create a new instance.
+local custom = elt.Generator:new()
+-- Overwrite the header function with our custom behavior.
+custom.header = function(self)
+    elt.Generator.header(self)
+    self:assign(('%q'):format('# Fixed heading at the start\n'))
+end
+local template = elt.compile('Content.', {generator=custom})
+print(template())
+--> "# Fixed heading at the start\nContent.\n"
+----
+
+
+
+
+
+== Markup in different template engines
+
+One of the reasons for making this library was that the choice of markers in
+`etlua` was not what I preferred (and the library doesn't support changing it).
+The use of a special markers to trim whitespace wasn't also my preference. So I
+have briefly reviewed what's out there to compare my choices and defaults to the
+prior art.
+
+=== ERB
+
+https://docs.ruby-lang.org/en/master/ERB.html#class-ERB-label-Tags
+
+* `=` outputs literally.
+* No escape marker! Apparently, it's an extension, though not directly usable
+  from to the markup.
+* `-` can suppress each blank line whose source line ends with `-%>`.
+// TODO: I should verify if this implies lines that are only fully blank, but I
+// think so, given the other trim modes.
+* It supports other ways to remove trailing newlines via the `trim_mode`.
+
+=== Lodash
+
+https://lodash.com/docs/4.17.15#template
+
+* `=` outputs literally.
+* `-` escapes.
+* Apparently no way to trim whitespace.
+
+=== EJS
+
+https://ejs.co/
+
+* `=` escapes.
+* `-` literally.
+* Provides the trailing `-` to trim the last newline, and `_` to trim all the
+  whitespace.
+
+=== etlua
+
+https://github.com/leafo/etlua
+
+* `=` escapes.
+* `-` literally.
+* Provides the trailing `-` to trim the last newline.
+
