@@ -535,7 +535,32 @@ describe('The `amend_error` function', function()
 
         code = wrap({
             '--[[1]] if true then',
-            '--[[2]] __insert(__buffer, __stringify( 42|0 ))',
+            '--[[2]] __insert(__buffer, __stringify( if ))',
+            '--[[3]] end',
+        })
+        template, original = loader(code)
+        assert.is_nil(template)
+        assert.is_string(original)
+        amended = elt.amend_error(original, code)
+        assert.is_string(amended)
+        assert.is_nil(amended:find(':3:', 1, plain_text))
+        assert.is_not_nil(amended:find(':~2(elt):', 1, plain_text))
+
+        code = wrap({
+            '--[[1]] if true then',
+            '--[[2]] __insert(__buffer, __stringify( end ))',
+        })
+        template, original = loader(code)
+        assert.is_nil(template)
+        assert.is_string(original)
+        amended = elt.amend_error(original, code)
+        assert.is_string(amended)
+        assert.is_nil(amended:find(':3:', 1, plain_text))
+        assert.is_not_nil(amended:find(':~2(elt):', 1, plain_text))
+
+        code = wrap({
+            '--[[1]] if true then',
+            '--[[2]] __insert(__buffer, __stringify( 42 + ))',
             '--[[3]] end',
         })
         template, original = loader(code)
