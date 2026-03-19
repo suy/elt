@@ -3,6 +3,25 @@
 
 local tostring = tostring
 
+-- Replacement for `setfenv` on newer PUC-RIO Lua versions. Thanks, Leaf!
+-- https://leafo.net/guides/setfenv-in-lua52-and-above.html#code
+local setfenv = setfenv or function(wrapped, environment)
+    local upvalue = 1
+    while true do
+        local name = debug.getupvalue(wrapped, upvalue)
+        if name == '_ENV' then
+            debug.upvaluejoin(wrapped, upvalue, (function()
+                return environment
+            end), 1)
+            break
+        elseif not name then
+            break
+        end
+        upvalue = upvalue + 1
+    end
+    return wrapped
+end
+
 local elt = {}
 
 elt._COPYRIGHT   = 'Copyright (c) 2024-2026 Alejandro Exojo Piqueras'
