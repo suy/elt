@@ -22,6 +22,12 @@ written directly in Lua instead of {Moonscript}, and some details are very
 different). It also takes inspiration from {ERuby} and other templates I've used
 on the past. It is licensed under the {MIT}.
 
+ifdef::env-github,env-gitlab[]
+NOTE: This README file is written in Asciidoc, but Github/Gitlab don't produce
+the best output. Check out the https://suy.github.io/elt/[ELT website] for the
+same document with a bit of a better appearance.
+endif::[]
+
 
 
 
@@ -185,8 +191,9 @@ Hello<%
 %> world
 ----
 
-TIP: Check out the reference document, which contains a few more samples of code
-with their expected output.
+TIP: Check out the https://suy.github.io/elt/reference.html[reference document],
+which contains a few more samples of code with their expected output, coming
+from the real unit tests of the library.
 
 [TIP]
 ====
