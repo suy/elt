@@ -1,0 +1,48 @@
+name: Build documentation
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tests/samples/reference.adoc"
+      - "tests/samples/**"
+      - ".github/workflows/docs.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Asciidoctor
+        run: sudo gem install asciidoctor
+      - name: Generate HTML
+        run: |
+          asciidoctor \
+            --out-file _site/index.html \
+            README.adoc
+          asciidoctor \
+            --out-file _site/reference.html \
+            tests/samples/reference.adoc
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deploy
