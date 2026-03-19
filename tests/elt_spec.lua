@@ -531,7 +531,7 @@ describe('The `amend_error` function', function()
         assert.is_string(amended)
         -- Fail at finding the original line indicator.
         assert.is_nil(amended:find(':2:', 1, plain_text))
-        assert.is_not_nil(amended:find(':~1(template):', 1, plain_text))
+        assert.is_not_nil(amended:find(':~1(elt):', 1, plain_text))
 
         code = wrap({
             '--[[1]] if true then',
@@ -544,7 +544,7 @@ describe('The `amend_error` function', function()
         amended = elt.amend_error(original, code)
         assert.is_string(amended)
         assert.is_nil(amended:find(':3:', 1, plain_text))
-        assert.is_not_nil(amended:find(':~2(template):', 1, plain_text))
+        assert.is_not_nil(amended:find(':~2(elt):', 1, plain_text))
 
         code = wrap({
             '--[[1]] if true then',
@@ -558,7 +558,7 @@ describe('The `amend_error` function', function()
         amended = elt.amend_error(original, code)
         assert.is_string(amended)
         assert.is_nil(amended:find(':6:', 1, plain_text))
-        assert.is_not_nil(amended:find(':~4(template):', 1, plain_text))
+        assert.is_not_nil(amended:find(':~4(elt):', 1, plain_text))
     end)
 end)
 

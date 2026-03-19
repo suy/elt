@@ -347,9 +347,8 @@ elt.amend_error = function(message, code)
     for line = tonumber(number), 1, -1 do
         local found = lines[line]:match(pattern)
         if found then
-            local result, _ = message:gsub(':' .. number .. ':',
-                                           ':~' .. found .. '(template):')
-            return result -- To make the LSP happier about the return values.
+            return (message:gsub(':' .. number .. ':',
+                                 ':~' .. found .. '(elt):'))
         end
     end
     return message
