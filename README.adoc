@@ -27,6 +27,10 @@ NOTE: This README file is written in Asciidoc, but Github/Gitlab don't produce
 the best output. Check out the https://suy.github.io/elt/[ELT website] for the
 same document with a bit of a better appearance.
 endif::[]
+ifndef::env-github,env-gitlab[]
+NOTE: The project repository, issue tracker, etc., is on
+https://github.com/suy/elt[Github].
+endif::[]
 
 
 
