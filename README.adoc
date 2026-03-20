@@ -37,6 +37,10 @@ endif::[]
 
 == Synopsis
 
+Install the library with https://luarocks.org/[LuaRocks]:
+
+    luarocks install elt
+
 Given the following template is stored in `example.elt`:
 
 [source,lua]
