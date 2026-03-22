@@ -1,0 +1,10 @@
+return {
+    _all = { -- Settings applied to ALL configurations.
+        ROOT = {'tests'},
+    },
+    default = { -- Default configuration settings (no `--run=xyz` passed).
+        verbose = true,
+    },
+    -- Settings applied if `--run=custom_name` is passed. Nothing for now.
+    -- custom_name = {},
+}
