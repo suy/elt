@@ -135,11 +135,13 @@ You'll often will want to print a value stored in a Lua variable instead of
 fixed text. You can print it "raw", or "escaped". The raw value will be passed
 to the `tostring` function, and its return value will be printed. The escaped
 value will additionally be passed to an `escape` function before printing, to
-prevent undesired output. To print a value, follow the opening delimiter by
-either the `raw` or `escape` delimiter. By default, those delimiters are
-respectively `=` (mnemonic: "exactly like this", like in a Lua REPL) and `!`
-(mnemonic: "caution!"). The delimiters can be changed to your liking and can be
-any string, not just one character.
+prevent undesired output.
+
+To print a value, the `open` delimiter must be immediately followed by either
+the `raw` or `escape` delimiter. By default, those delimiters are respectively
+`=` (mnemonic: "exactly like this", like in a Lua REPL) and `!` (mnemonic:
+"caution!"). The delimiters can be changed to your liking and can be any string,
+not just one character.
 
 This is an example of how to print a variable:
 
@@ -158,8 +160,8 @@ other kind of valid Lua expression:
 
 [source,lua]
 ----
-The current date is: <%= os.date("%Y-%m-%d %H:%M:%S") %>
-2 + 2 = <%= 2+2 %>.
+The current date is: <%= os.date("%Y-%m-%d %H:%M:%S") %>.
+2 plus 2 is <%= 2+2 %>.
 ----
 
 In addition to all of the above, you can interrupt the normal as-is text to
@@ -198,6 +200,19 @@ Hello<%
 -- Ignored entirely
 %> world
 ----
+
+And finally, the `line` delimiter can also be followed immediately by the `raw`
+or `escaped` delimiters. The effect is the same as with the open delimiters, but
+it also skips new line characters. The following just produces `123`, without
+any new line character.
+
+[source,lua]
+----
+% for index = 1, 3 do
+%= index
+% end
+----
+
 
 TIP: Check out the https://suy.github.io/elt/reference.html[reference document],
 which contains a few more samples of code with their expected output, coming

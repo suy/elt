@@ -286,6 +286,20 @@ describe('Parser class', function()
             })
         end)
 
+        it('parses the single line raw mode', function()
+            local chunks = parser:parse('%= value')
+            assert.is_same(chunks, {
+                {' value', 1, elt.Chunks.RAW}
+            })
+        end)
+
+        it('parses the single line escape mode', function()
+            local chunks = parser:parse('%! value')
+            assert.is_same(chunks, {
+                {' value', 1, elt.Chunks.ESCAPE}
+            })
+        end)
+
         it('parses the start of entering into code mode', function()
             local chunks = parser:parse('<% if something then')
             assert.is_same(chunks, {
@@ -426,6 +440,40 @@ describe('Parser class', function()
                 {' item ', 3, elt.Chunks.RAW},
                 '\n',
                 {' end', 4, elt.Chunks.CODE},
+            })
+        end)
+
+        it('parses a mix of text, a line of code, and a line of raw output', function()
+            local chunks = parser:parse({
+                'Hello',
+                '% for i, item in pairs(items) do',
+                '%= item',
+                '% end',
+            })
+            assert.is_same(chunks, {
+                'Hello\n',
+                {' for i, item in pairs(items) do', 2, elt.Chunks.CODE},
+                {' item', 3, elt.Chunks.RAW},
+                {' end', 4, elt.Chunks.CODE},
+            })
+        end)
+
+        it('parses mixed line delimiters with raw and escape modes', function()
+            local chunks = parser:parse({
+                'Hello',
+                '% foo()',
+                '%= value',
+                '%! value',
+                '% bar()',
+                'Goodbye',
+            })
+            assert.is_same(chunks, {
+                'Hello\n',
+                {' foo()', 2, elt.Chunks.CODE},
+                {' value', 3, elt.Chunks.RAW},
+                {' value', 4, elt.Chunks.ESCAPE},
+                {' bar()', 5, elt.Chunks.CODE},
+                'Goodbye\n',
             })
         end)
 
@@ -769,6 +817,8 @@ describe('The render function', function()
             '33-list-in-loop',
             '34-list-in-loop',
             '35-list-in-loop',
+            '41-line-delimiters',
+            '42-line-delimiters',
             '51-complex-mix',
             '52-print-delimiters',
         }

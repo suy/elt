@@ -1,0 +1,6 @@
+My list of items:
+% for index, item in ipairs(list) do
+%= item
+%= index ~= 3 and ', ' or ''
+% end
+

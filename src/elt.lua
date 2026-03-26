@@ -275,8 +275,8 @@ elt.Parser = {
             if not special and delimiters.line and #delimiters.line ~= 0 then
                 if line:sub(1, #delimiters.line) == delimiters.line then
                     flush_pending()
-                    local rest = line:sub(#delimiters.line + 1)
-                    chunks:append(rest, line_count, elt.Chunks.CODE)
+                    local kind, from = new_context(line, #delimiters.line + 1)
+                    chunks:append(line:sub(from), line_count, kind)
                     -- We are done with the whole line, so we would `continue`,
                     -- if Lua had `continue`. This effectively skips the rest of
                     -- the outer `for` loop (by skipping the `while` below).

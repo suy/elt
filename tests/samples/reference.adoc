@@ -180,6 +180,28 @@ include::35-list-in-loop.txt[]
 --
 
 
+|Mixed code and text with line delimiters only 1
+|
+[source,lua]
+include::41-line-delimiters.elt[]
+|
+[source,txt]
+--
+include::41-line-delimiters.txt[]
+--
+
+
+|Mixed code and text with line delimiters only 2
+|
+[source,lua]
+include::42-line-delimiters.elt[]
+|
+[source,txt]
+--
+include::42-line-delimiters.txt[]
+--
+
+
 |Complex mix
 |
 [source,lua]
