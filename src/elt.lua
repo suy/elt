@@ -381,6 +381,8 @@ end
 
 --- @param code_text string Text with the code to load.
 --- @param code_name string|nil Name to pass to the `load` function.
+--- @return function|nil # Loaded function or nil on error.
+--- @return string|nil # Error message if loading failed.
 elt.loader = function(code_text, code_name)
     -- Lua 5.2 sort of merged `loadstring` with `load`. LuaJIT supports both.
     local load_function = type(loadstring) == 'function' and loadstring or load
@@ -394,6 +396,12 @@ end
 
 
 
+--- @param f function Function to execute.
+--- @param environment table|nil Environment for the function.
+--- @param buffer table|nil Buffer to store output.
+--- @param stringify function Function to convert values to strings.
+--- @param escape function Function to escape values.
+--- @return any # Returned value from the executed function (normally a string).
 elt.execute = function(f, environment, buffer, stringify, escape)
     environment = environment or {}
     buffer = buffer or {}
@@ -414,6 +422,9 @@ end
 
 
 
+--- @param source string|table|function The template source to be compiled.
+--- @param options? table|nil Extra options.
+--- @return string # Generated Lua code.
 elt.to_code = function(source, options)
     assert(type(options) == 'table' or type(options) == 'nil',
         'Options must be a table or nil')
@@ -485,8 +496,14 @@ end
 
 
 
-elt.render = function(text, environment, options, buffer)
-    local compiled, message = elt.compile(text, options)
+--- @param source string|table|function The template source to be compiled.
+--- @param environment table|nil Environment for the template.
+--- @param options? table|nil Extra options.
+--- @param buffer table|nil Buffer to store output.
+--- @return string|nil # Rendered output or nil on error.
+--- @return string|nil # Error message if rendering failed.
+elt.render = function(source, environment, options, buffer)
+    local compiled, message = elt.compile(source, options)
     if compiled then
         return compiled(environment, buffer)
     else
