@@ -546,26 +546,45 @@ print(template())
 == Markup in different template engines
 
 One of the reasons for making this library was that the choice of markers in
-`etlua` was not what I preferred (and the library doesn't support changing it).
-The use of a special markers to trim whitespace wasn't also my preference. So I
-have briefly reviewed what's out there to compare my choices and defaults to the
-prior art.
+{Etlua} was not what I preferred (and the library doesn't offer an API to change
+them, as are hardcoded). The use of a special trailing marker to trim
+whitespace wasn't my preferred approach either. I grew a bit tired of writing
+`<%- something -%>` in the middle of lines (which don't require the `-` at the
+end, but look nicer with the `-` at both sides).
+
+I noticed that ERB has it too. However, in ERB those are optional, and ERB also
+offers the `%` notation to abbreviate what they call an "execution tag", which
+is equivalent to the functionality in ELT. Both the `-` and `%` are optional in
+ERB, and have to be passed as `trim_mode` argument to be supported. I realized
+that the `%` was more convenient to use, and that it could work as well for
+skipping unwanted new line characters, so that's what I settled on for ELT.
+
+But I briefly reviewed what was out there to compare my design choices and
+defaults to the "prior art". Here is a bit of a review of those.
+
+=== etlua
+
+See: https://github.com/leafo/etlua
+
+* `=` escapes.
+* `-` outputs literally.
+* Supports `-` to trim a new line character immediately followed to `-%>`.
 
 === ERB
 
-https://docs.ruby-lang.org/en/master/ERB.html#class-ERB-label-Tags
+See: https://docs.ruby-lang.org/en/master/ERB.html#class-ERB-label-Tags
 
 * `=` outputs literally.
 * No escape marker! Apparently, it's an extension, though not directly usable
   from to the markup.
-* `-` can suppress each blank line whose source line ends with `-%>`.
-// TODO: I should verify if this implies lines that are only fully blank, but I
-// think so, given the other trim modes.
-* It supports other ways to remove trailing newlines via the `trim_mode`.
+* `-` can suppress new line characters whose source line ends with `-%>`.
+* It supports other ways to remove new line characters via the `trim_mode`
+  argument. Other trim modes might make both the `-` and `%` unnecessary, and
+  everything is a user choice.
 
 === Lodash
 
-https://lodash.com/docs/4.17.15#template
+See: https://lodash.com/docs/4.17.15#template
 
 * `=` outputs literally.
 * `-` escapes.
@@ -573,18 +592,10 @@ https://lodash.com/docs/4.17.15#template
 
 === EJS
 
-https://ejs.co/
+See: https://ejs.co/
 
 * `=` escapes.
 * `-` literally.
-* Provides the trailing `-` to trim the last newline, and `_` to trim all the
-  whitespace.
-
-=== etlua
-
-https://github.com/leafo/etlua
-
-* `=` escapes.
-* `-` literally.
-* Provides the trailing `-` to trim the last newline.
+* Provides the trailing `-` to trim the last new line character, and `_` to trim
+  all the whitespace.
 
