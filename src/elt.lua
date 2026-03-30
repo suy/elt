@@ -26,7 +26,7 @@ local elt = {}
 
 elt._COPYRIGHT   = 'Copyright (c) 2024-2026 Alejandro Exojo Piqueras'
 elt._DESCRIPTION = 'Template engine in pure Lua'
-elt._VERSION = '0.1.0'
+elt._VERSION = '0.2.0'
 
 elt.delimiters = {
     open = '<%',
@@ -34,6 +34,7 @@ elt.delimiters = {
     line = '%',
     raw = '=',
     escape = '!',
+    comment = '#',
 }
 
 elt.escape = function(value)
@@ -222,7 +223,8 @@ elt.Parser = {
         local chunks = elt.Chunks:new()
         local plain_text = true -- Constant. For clarity in string.find() calls.
         --- @type (boolean|Chunks.Kind) Tracks if we are in plain text (`false`)
-        --- or in which kind of "special" code context (code, raw or escaped).
+        --- or in which kind of "special" code context (code, raw or escaped),
+        --- or just `true` if in a comment, which is special, but not a chunk.
         local special = false -- Start with "text", till we find a delimiter.
 
         -- Keep track of the line number in the template, so the generated code
@@ -247,11 +249,13 @@ elt.Parser = {
             return line:find(delimiter, from, plain_text)
         end
 
-        -- Returns which kind of special mode we are in (raw, escape or code).
-        --- @return Chunks.Kind, integer
+        -- Returns which kind of special mode we are in, with `true` meaning,
+        -- and a `Chunks.Kind` value otherwise.
+        --- @return Chunks.Kind|`true`, integer
         local function new_context(line, from)
             local delimiter_raw = delimiters.raw and #delimiters.raw or 0
             local delimiter_escape = delimiters.escape and #delimiters.escape or 0
+            local delimiter_comment = delimiters.comment and #delimiters.comment or 0
             if delimiter_raw ~= 0 then
                 if line:sub(from, from + delimiter_raw - 1) == delimiters.raw then
                     return elt.Chunks.RAW, from + delimiter_raw
@@ -260,6 +264,11 @@ elt.Parser = {
             if delimiter_escape ~= 0 then
                 if line:sub(from, from + delimiter_escape - 1) == delimiters.escape then
                     return elt.Chunks.ESCAPE, from + delimiter_escape
+                end
+            end
+            if delimiter_comment ~= 0 then
+                if line:sub(from, from + delimiter_comment - 1) == delimiters.comment then
+                    return true, from + delimiter_comment
                 end
             end
 
@@ -276,7 +285,9 @@ elt.Parser = {
                 if line:sub(1, #delimiters.line) == delimiters.line then
                     flush_pending()
                     local kind, from = new_context(line, #delimiters.line + 1)
-                    chunks:append(line:sub(from), line_count, kind)
+                    if kind ~= true then -- If true it would be a comment to skip.
+                        chunks:append(line:sub(from), line_count, kind)
+                    end
                     -- We are done with the whole line, so we would `continue`,
                     -- if Lua had `continue`. This effectively skips the rest of
                     -- the outer `for` loop (by skipping the `while` below).
@@ -289,15 +300,16 @@ elt.Parser = {
                 local from, to = find_delimiter(line, unread)
 
                 -- If no `from`, then no delimiter was found and hence no change
-                -- in state: we are still in normal or still in normal mode.
+                -- in state: we are still in normal text to pass as is, or code.
                 if not from then
                     local rest = line:sub(unread)
                     -- Code should be added chunk by chunk because each new
                     -- template line produces a new *numbered* line in the
-                    -- generated code. The others are accumulated till they end.
+                    -- generated code. The others are accumulated till they end,
+                    -- with the exception of comments, which are just skipped.
                     if special == elt.Chunks.CODE then
                         chunks:append(rest, line_count, special)
-                    else
+                    elseif special ~= true then -- Skips just the comments.
                         table.insert(pending_text, rest .. '\n')
                     end
 
@@ -320,7 +332,7 @@ elt.Parser = {
                     local rest = line:sub(unread, from - 1)
                     if special == elt.Chunks.CODE then
                         chunks:append(rest, line_count, special)
-                    else -- RAW or ESCAPE
+                    elseif special ~= true then -- RAW or ESCAPE, but not comments.
                         table.insert(pending_text, rest)
                         chunks:append(table.concat(pending_text), pending_line, special)
                         pending_text = {}

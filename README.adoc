@@ -103,6 +103,9 @@ These are the different things that an ELT template can contain:
   is executed.
 . Lua code to run. This will be executed when the template is executed. It is
   used to make decisions on what to print (conditions, loops, etc.).
+. A comment. It will be equivalent to not being there at all. It is useful
+  to add your own annotations that won't appear in the output, and for more
+  control of new lines.
 . A Lua expression to print. It will typically be a variable that needs to be
   converted to text and printed in the output.
 . A Lua expression to print, but escaped. Like above, but run first through a
@@ -201,13 +204,28 @@ Hello<%
 %> world
 ----
 
-And finally, the `line` delimiter can also be followed immediately by the `raw`
-or `escaped` delimiters. The effect is the same as with the open delimiters, but
-it also skips new line characters. The following just produces `123`, without
-any new line character.
+However, if you want to add your own notes and comments, you will probably
+prefer to use the `comment` delimiter (`#` by default) instead of entering code
+mode, then using the Lua syntax for comments like shown above. This is better in
+a few ways:
+
+* The markup to type is shorter (`<%# comment %>` instead of `<% --comment %>`).
+* The comment is entirely stripped out by the parser, so there is less work to
+  do internally.
+* You will have less trouble with multiple line comments (the ones like `--[[
+  comment ]]`). This is due to an implementation detail of the library. See
+  <<#details_generated_code>> if you want to know (but the two reasons above are
+  probably enough).
+
+And finally, the `line` delimiter can also be followed immediately by the `raw`,
+`escape` or `comment` delimiters. The effect is the same as with the open
+delimiters, but since the whole line is taken a special, the new line characters
+don't end up in the output. For example, the following just produces `123`,
+without any new line character.
 
 [source,lua]
 ----
+%# Example one line comment.
 % for index = 1, 3 do
 %= index
 % end
@@ -374,6 +392,7 @@ elt.delimiters = {
     line = '%',
     raw = '=',
     escape = '!',
+    comment = '#',
 }
 ----
 

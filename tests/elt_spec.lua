@@ -300,6 +300,11 @@ describe('Parser class', function()
             })
         end)
 
+        it('parses the single line comment mode', function()
+            local chunks = parser:parse('%# Comment in template')
+            assert.is_same(chunks, {})
+        end)
+
         it('parses the start of entering into code mode', function()
             local chunks = parser:parse('<% if something then')
             assert.is_same(chunks, {
@@ -350,6 +355,11 @@ describe('Parser class', function()
             })
         end)
 
+        it('parses inline comment mode', function()
+            local chunks = parser:parse('<%# Comment in template %>')
+            assert.is_same(chunks, {'\n'})
+        end)
+
         --
         -- Start mixing modes.
         --
@@ -382,6 +392,29 @@ describe('Parser class', function()
                 'some text\n',
                 {' code() ', 2, elt.Chunks.CODE},
                 '\nmore text\n',
+            })
+        end)
+
+        it('parses multiline comments', function()
+            local chunks = parser:parse({
+                'hello',
+                '<%# comment line 1',
+                'comment line 2',
+                '%>world'
+            })
+            assert.is_same(chunks, { 'hello\n', 'world\n', })
+        end)
+
+        it('parses inline comment mode with text around it', function()
+            local chunks = parser:parse('foo<%# Comment %>bar')
+            assert.is_same(chunks, { 'foo', 'bar\n', })
+        end)
+
+        it('parses comment with mixed modes', function()
+            local chunks = parser:parse({'% code()', '%# comment', '%! value'})
+            assert.is_same(chunks, {
+                {' code()', 1, elt.Chunks.CODE},
+                {' value', 3, elt.Chunks.ESCAPE},
             })
         end)
 
@@ -805,6 +838,8 @@ describe('The render function', function()
             '11-hello-void',
             '12-hello-void',
             '13-hello-void',
+            '14-hello-comments',
+            '15-hello-comments',
             '21-hello-name',
             '22-hello-name',
             '23-hello-hello',

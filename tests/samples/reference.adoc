@@ -68,6 +68,24 @@ include::13-hello-void.elt[]
 include::13-hello-void.txt[]
 
 
+|Just comments 1
+|
+[source,lua]
+include::14-hello-comments.elt[]
+|
+[source,txt]
+include::14-hello-comments.txt[]
+
+
+|Just comments 2
+|
+[source,lua]
+include::15-hello-comments.elt[]
+|
+[source,txt]
+include::15-hello-comments.txt[]
+
+
 |Basic substitution 1
 |
 [source,lua]
